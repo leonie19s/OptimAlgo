@@ -7,12 +7,15 @@ public class Placement {
     int y;
     boolean rotated; // implemented as bool so that 2x rotation is original rectangle again
 
-    public Placement(int x, int y){
+    public Placement(Box box, int x, int y, boolean rotated){
         this.x = x;
         this.y = y;
-        this.rotated = false; // initially not rotated
+        this.rotated = rotated;
+        this.box = box;
     }
-
+    public Box getBox(){
+        return this.box;
+    }
     public void rotate(){
         // this only rotates, it's up to the calling function to check if
         // the resulting rectangle is within valid bounds
