@@ -1,4 +1,4 @@
 package main.java.neighborhoods;
 
-public class GeometryNeighborhood {
+public class RuleBased {
 }

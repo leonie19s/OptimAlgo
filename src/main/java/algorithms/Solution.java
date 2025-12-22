@@ -1,6 +1,7 @@
 package main.java.algorithms;
 
 public interface Solution {
-    double evaluate(); // Zielfunktion
+    // copy um aktuelle Lösung zu kopieren wenn man neue ausprobiert
+    Solution copy();
 
 }
