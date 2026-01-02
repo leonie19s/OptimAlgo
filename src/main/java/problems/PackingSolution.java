@@ -14,8 +14,16 @@ public class PackingSolution implements Solution {
     private Map<Rectangle, Placement> placements;
     private int nextBoxID;
 
+
+    public PackingSolution(int boxSize, ArrayList<Box> boxes, HashMap<Rectangle, Placement> placements ){
+        this.boxSize = boxSize;
+        this.boxes = boxes;
+        this.placements = placements;
+        this.nextBoxID = 0; // start at 0
+    }
+
     @Override
-    public Solution copy() {
+    public PackingSolution copy() {
 
         HashMap<Rectangle, Placement> newPlacements = new HashMap<>();
         for (Map.Entry<Rectangle, Placement> entry: placements.entrySet()){
@@ -31,12 +39,6 @@ public class PackingSolution implements Solution {
         return copy;
     }
 
-    public PackingSolution(int boxSize, ArrayList<Box> boxes, HashMap<Rectangle, Placement> placements ){
-        this.boxSize = boxSize;
-        this.boxes = boxes;
-        this.placements = placements;
-        this.nextBoxID = 0; // start at 0
-    }
 
     public Placement getPlacement(Rectangle rect) {
         return placements.get(rect);
@@ -61,7 +63,41 @@ public class PackingSolution implements Solution {
         return boxes.size();
     }
 
-    public boolean areRectanglesInSolution(List<Rectangle> rectangles){
+    public Map<Rectangle, Placement> getPlacements(){
+        return placements;
+    }
+
+    public boolean boxExists(int boxID){
+        Set<Integer> boxIds = new HashSet<>();
+        for (Box box : boxes) {
+            boxIds.add(box.getID());
+        }
+        return boxIds.contains(boxID);
+    }
+    public void addBox(Box box){
+        boxes.add(box);
+    }
+    /*
+    First time placement of the rectangles!
+     */
+    public PackingSolution placeRectangle(Rectangle rec, int boxID, int x, int y, boolean rotated){
+        PackingSolution copy = this.copy();
+        Box newBox = new Box(boxSize, boxID);
+        if (!copy.boxExists(boxID)){
+            copy.addBox(newBox);
+        }
+        Placement placement = new Placement(
+                newBox,
+                x,
+                y,
+                rotated
+        );
+        copy.placements.put(rec, placement);
+
+        return copy;
+
+    }
+    public boolean areRectanglesInSolution(Collection<Rectangle> rectangles){
         // List<Boxes>
         Set<Integer> boxIds = new HashSet<>();
         for (Box box : boxes) {
@@ -75,23 +111,50 @@ public class PackingSolution implements Solution {
         }
         return true;
     }
-
-    public boolean areRectanglesWithinBoxLength(List<Rectangle> rectangles) {
-        for (Rectangle rec : rectangles) {
-            Placement placement = placements.get(rec);
-            boolean check = placement.isValid(rec);
-            if (!check) {
-                return false;
-            }
+    public boolean doesSolutionContainThisRectangle(Rectangle r){
+        Set<Integer> boxIds = new HashSet<>();
+        for (Box box : boxes) {
+            boxIds.add(box.getID());
         }
-        return true;
+        Placement placement = placements.get(r);
+        return placement != null && boxIds.contains(placement.getBox().getID());
     }
-    //func move rectangle
 
-    // func rotate rectangle
-    // func getBox
-    // func getBoxes
-    // func getNumber of boxes
-    // func get placements
+
+    public PackingSolution createNeighborByMove(Rectangle rec, int dx, int dy){
+        // copy current solution
+        PackingSolution copy = this.copy();
+        // get old placement of rec
+        Placement p = copy.getPlacement(rec);
+        // create new placement and place in copy
+        copy.placements.put(
+                rec,
+                new Placement(
+                        p.getBox(),
+                        p.x + dx,
+                        p.y +dy,
+                        p.rotated
+                )
+        );
+        return copy;
+    }
+
+    public PackingSolution createNeighborByRotate(Rectangle rec){
+        // copy current solution
+        PackingSolution copy = this.copy();
+        // get old placement of rec
+        Placement p = copy.getPlacement(rec);
+        // create new placement and place in copy
+        copy.placements.put(
+                rec,
+                new Placement(
+                        p.getBox(),
+                        p.x ,
+                        p.y,
+                        !p.rotated
+                )
+        );
+        return copy;
+    }
 
 }

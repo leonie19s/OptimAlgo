@@ -1,15 +1,17 @@
 package main.java.problems;
 
+import java.util.HashMap;
 import java.util.List;
 
-public class RectanglePackingProblem implements OptimizationProblem<PackingSolution>{
+public class RectanglePackingProblem implements OptimizationProblem<PackingSolution> {
 
     private final List<Rectangle> rectangles;
     // evtl placement strategy
 
-    public RectanglePackingProblem(List<Rectangle> rectangles){
+    public RectanglePackingProblem(List<Rectangle> rectangles) {
         this.rectangles = rectangles;
     }
+
     @Override
     public PackingSolution createInitialSolution() {
         // random
@@ -26,11 +28,28 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
 
     @Override
     public boolean isFeasible(PackingSolution solution) {
-        // do all rectangles have a valid placement
+        // do all rectangles exist in solution
         boolean check = solution.areRectanglesInSolution(rectangles);
 
+        // are all rectangle placements valid
         // are they non-overlapping
 
         return check;
+    }
+
+    /*
+    Accepts a PackingSolution, checks if all rectangles are placed in a valid way within the boxes
+     */
+    public boolean areRectanglesWithinBoxLength(PackingSolution solution) {
+        HashMap<Rectangle, Placement> placements = (HashMap<Rectangle, Placement>) solution.getPlacements();
+
+        for (Rectangle rec : rectangles) {
+            Placement placement = placements.get(rec);
+            boolean check = placement.isValid(rec);
+            if (!check) {
+                return false;
+            }
+        }
+        return true;
     }
 }
