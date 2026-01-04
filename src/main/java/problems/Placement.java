@@ -16,6 +16,7 @@ public class Placement {
     public Box getBox(){
         return this.box;
     }
+
     public void rotate(){
         // this only rotates, it's up to the calling function to check if
         // the resulting rectangle is within valid bounds

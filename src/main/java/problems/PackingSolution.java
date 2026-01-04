@@ -15,26 +15,29 @@ public class PackingSolution implements Solution {
     private int nextBoxID;
 
 
-    public PackingSolution(int boxSize, ArrayList<Box> boxes, HashMap<Rectangle, Placement> placements ){
+    public PackingSolution(int boxSize ){
         this.boxSize = boxSize;
-        this.boxes = boxes;
-        this.placements = placements;
+        this.boxes = new ArrayList<>();
+        this.placements = new HashMap<>();
         this.nextBoxID = 0; // start at 0
     }
+
 
     @Override
     public PackingSolution copy() {
 
         HashMap<Rectangle, Placement> newPlacements = new HashMap<>();
+        PackingSolution copy = new PackingSolution(boxSize);
         for (Map.Entry<Rectangle, Placement> entry: placements.entrySet()){
             Rectangle rec = entry.getKey();
             Placement oldPlace = entry.getValue();
 
             Placement newP = new Placement(oldPlace.getBox(), oldPlace.x, oldPlace.y, oldPlace.rotated);
             newPlacements.put(rec, newP);
+            copy.addBox(oldPlace.getBox());
         }
+        copy.setPlacements(newPlacements);
 
-        PackingSolution copy = new PackingSolution(boxSize, (ArrayList<Box>) boxes, newPlacements);
         copy.nextBoxID = this.nextBoxID;
         return copy;
     }
@@ -44,7 +47,11 @@ public class PackingSolution implements Solution {
         return placements.get(rect);
     }
 
-    public void setPlacement(Rectangle rect, Placement placement) {
+    public void setPlacements(HashMap<Rectangle, Placement> placements){
+        this.placements = placements;
+    }
+
+    public void addPlacement(Rectangle rect, Placement placement) {
         placements.put(rect, placement);
     }
 
@@ -52,6 +59,9 @@ public class PackingSolution implements Solution {
     Creates a new box with increasing box id and automatically appends it to the current
     * list of active boxes
      */
+    public List<Box> getBoxes(){
+        return this.boxes;
+    }
     public Box createNewBox(){
         Box box = new Box(boxSize, nextBoxID++);
         boxes.add(box);
@@ -74,9 +84,15 @@ public class PackingSolution implements Solution {
         }
         return boxIds.contains(boxID);
     }
+
     public void addBox(Box box){
-        boxes.add(box);
+        if(boxExists(box.getID())){
+            return;
+        }
+        else boxes.add(box);
+
     }
+
     /*
     First time placement of the rectangles!
      */
@@ -155,6 +171,31 @@ public class PackingSolution implements Solution {
                 )
         );
         return copy;
+    }
+    public Box getBoxByBoxID(int boxID) throws Exception {
+        for (Box box : boxes) {
+            if (box.getID() == boxID){
+                return box;
+            }
+        }
+        throw new Exception("There is no Box with this Box ID.");
+    }
+
+    public List<Rectangle> getRectangleByBoxID(int boxID) throws Exception{
+        List<Rectangle> rectangles = new ArrayList<Rectangle>();
+        Box thisBox = getBoxByBoxID(boxID);
+        for (Map.Entry<Rectangle, Placement> entry : this.getPlacements().entrySet())
+        {
+            Rectangle r = entry.getKey();
+            Placement p = entry.getValue();
+            // if the box connected with this rectangle-placement pair is the same box given by the ID, save the rec
+            if (p.getBox().equals(thisBox))
+            {
+                rectangles.add(r);
+            }
+
+        }
+        return rectangles;
     }
 
 }
