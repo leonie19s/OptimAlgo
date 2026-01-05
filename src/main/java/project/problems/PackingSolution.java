@@ -12,14 +12,15 @@ public class PackingSolution implements Solution {
     private final int boxSize;
     private List<Box> boxes;
     private Map<Rectangle, Placement> placements;
-    private int nextBoxID;
+    private BoxIDGenerator IDgenerator;
+
 
 
     public PackingSolution(int boxSize ){
         this.boxSize = boxSize;
         this.boxes = new ArrayList<>();
         this.placements = new HashMap<>();
-        this.nextBoxID = 0; // start at 0
+        this.IDgenerator = new BoxIDGenerator(0); // start at 0
     }
 
 
@@ -38,11 +39,11 @@ public class PackingSolution implements Solution {
         }
         copy.setPlacements(newPlacements);
 
-        copy.nextBoxID = this.nextBoxID;
+        copy.IDgenerator = this.IDgenerator.copy();
         return copy;
     }
 
-
+    // ------ Placement related methods -------
     public Placement getPlacement(Rectangle rect) {
         return placements.get(rect);
     }
@@ -55,15 +56,19 @@ public class PackingSolution implements Solution {
         placements.put(rect, placement);
     }
 
-    /*
-    Creates a new box with increasing box id and automatically appends it to the current
-    * list of active boxes
-     */
+    public Map<Rectangle, Placement> getPlacements(){
+        return placements;
+    }
+
+
+    // ------- Box related methods ------
     public List<Box> getBoxes(){
         return this.boxes;
     }
-    public Box createNewBox(){
-        Box box = new Box(boxSize, nextBoxID++);
+
+    public Box createNewBox()
+    {
+        Box box = new Box(boxSize, this.IDgenerator.nextID());
         boxes.add(box);
         return box;
 
@@ -71,10 +76,6 @@ public class PackingSolution implements Solution {
 
     public int getNumberOfBoxes(){
         return boxes.size();
-    }
-
-    public Map<Rectangle, Placement> getPlacements(){
-        return placements;
     }
 
     public boolean boxExists(int boxID){
@@ -92,6 +93,18 @@ public class PackingSolution implements Solution {
         else boxes.add(box);
 
     }
+
+    public Box getBoxByBoxID(int boxID) throws Exception {
+        for (Box box : boxes) {
+            if (box.getID() == boxID){
+                return box;
+            }
+        }
+        throw new Exception("There is no Box with this Box ID.");
+    }
+
+
+    // --- Rectangle and Solution related methods ----
 
     /*
     First time placement of the rectangles!
@@ -172,14 +185,7 @@ public class PackingSolution implements Solution {
         );
         return copy;
     }
-    public Box getBoxByBoxID(int boxID) throws Exception {
-        for (Box box : boxes) {
-            if (box.getID() == boxID){
-                return box;
-            }
-        }
-        throw new Exception("There is no Box with this Box ID.");
-    }
+
 
     public List<Rectangle> getRectangleByBoxID(int boxID) throws Exception{
         List<Rectangle> rectangles = new ArrayList<Rectangle>();

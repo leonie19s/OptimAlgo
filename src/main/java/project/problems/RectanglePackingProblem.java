@@ -9,12 +9,18 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
 
     private final List<Rectangle> rectangles;
     private final int boxSize;
+    public List<Box> initialBoxes;
     // evtl placement strategy
 
     public RectanglePackingProblem(List<Rectangle> rectangles, int boxSize) {
 
         this.rectangles = rectangles;
         this.boxSize = boxSize;
+
+    }
+
+    public List<Rectangle> getRectangles() {
+        return rectangles;
     }
 
     @Override

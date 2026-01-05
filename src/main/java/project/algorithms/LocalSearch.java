@@ -3,7 +3,8 @@ package project.algorithms;
 import project.neighborhoods.Neighborhood;
 import project.problems.OptimizationProblem;
 
-public class LocalSearch <T extends Solution> {
+public class LocalSearch<T extends Solution>
+        implements Algorithm<Void, T> {
 
     // has optimizationproblem as private attribute
     private final OptimizationProblem<T> problem;
@@ -16,8 +17,9 @@ public class LocalSearch <T extends Solution> {
         this.neighborhood = neighborhood;
 
     }
-    // method run
-    public T run(){
+
+    @Override
+    public T run(Void input) {
         return problem.createInitialSolution();
     }
 }
