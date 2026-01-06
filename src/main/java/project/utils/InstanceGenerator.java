@@ -14,13 +14,17 @@ public class InstanceGenerator {
     int nRectangles;
     int upperLimitW;
     int upperLimitH;
+    int lowerLimitW;
+    int lowerLimitH;
     int seed;
 
-    public InstanceGenerator(int L, int nRectangles, int upperLimitW, int upperLimitH, int seed){
+    public InstanceGenerator(int L, int nRectangles, int upperLimitW, int lowerLimitW, int upperLimitH, int lowerLimitH, int seed){
         this.L = L;
         this.nRectangles = nRectangles;
         this.upperLimitH = upperLimitH;
+        this.lowerLimitH = lowerLimitH;
         this.upperLimitW = upperLimitW;
+        this.lowerLimitW = lowerLimitW;
         this.seed = seed;
 
     }
@@ -28,11 +32,12 @@ public class InstanceGenerator {
     public RectanglePackingProblem generate(){
         Random rand = new Random(this.seed);
         List<Rectangle> rectangles = new ArrayList<>();
-        int min = 1;
         for (int i = 0; i < nRectangles; i++) {
-            int h = rand.nextInt(upperLimitH-min +1)+ min;
-            int w = rand.nextInt(upperLimitW-min +1)+ min;
+
+            int h = rand.nextInt(upperLimitH-lowerLimitH +1)+ lowerLimitH;
+            int w = rand.nextInt(upperLimitW-lowerLimitW +1)+ lowerLimitW;
             Rectangle thisRec = new Rectangle(w,h);
+            rectangles.add(thisRec);
 
         }
         return new RectanglePackingProblem(rectangles,L);

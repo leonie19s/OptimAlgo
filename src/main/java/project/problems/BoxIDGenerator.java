@@ -10,12 +10,13 @@ public class BoxIDGenerator {
     public int nextID() {
         return ID++;
     }
-    public int currID(){
-        return ID;
+    public int lastIssuedID(){
+
+        return ID-1;
     }
 
     public BoxIDGenerator copy(){
-        return new BoxIDGenerator(currID());
+        return new BoxIDGenerator(lastIssuedID());
     }
 
 }

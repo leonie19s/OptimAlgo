@@ -11,20 +11,16 @@ import project.selection.SelectionStrategy;
 public class AlgorithmFactory {
 
     // Generic factory for algorithms
-    public static <I, O extends Solution> Algorithm<I, O> createAlgorithm(
+    public static <I, O extends Solution<I>> Algorithm<?, O> createAlgorithm(
             String algorithmName,
             OptimizationProblem<O> problem,
             Neighborhood<O> neighborhood,          // optional, null if unused
             SelectionStrategy<I> strategy          // optional, null if unused
     ) {
-        switch (algorithmName) {
-            case "LocalSearch":
-                // cast to Algorithm<Void, O>
-                return (Algorithm<I, O>) new LocalSearch<>(problem, neighborhood);
-            case "Greedy":
-                return (Algorithm<I, O>) new Greedy<I, O>(problem, strategy);
-            default:
-                throw new IllegalArgumentException("Unknown algorithm: " + algorithmName);
-        }
+        return switch (algorithmName) {
+            case "LocalSearch" -> new LocalSearch<>(problem, neighborhood);
+            case "Greedy" -> new Greedy<>(problem, strategy);
+            default -> throw new IllegalArgumentException("Unknown algorithm: " + algorithmName);
+        };
     }
 }

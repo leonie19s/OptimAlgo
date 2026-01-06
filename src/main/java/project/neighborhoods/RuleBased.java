@@ -1,4 +1,17 @@
 package project.neighborhoods;
 
-public class RuleBased {
+import project.problems.PackingSolution;
+
+import java.util.List;
+
+public class RuleBased implements Neighborhood<PackingSolution>  {
+    @Override
+    public List<PackingSolution> generateNeighbors(PackingSolution solution) {
+        return List.of();
+    }
+
+    @Override
+    public PackingSolution generateNeighbor(PackingSolution solution) {
+        return null;
+    }
 }

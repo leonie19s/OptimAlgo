@@ -19,8 +19,22 @@ public class LocalSearch<T extends Solution>
     }
 
     @Override
-    public T run(Void input) {
-        return problem.createInitialSolution();
+    public T run(Void input, T solutionState) {
+        T currentSolution = solutionState;
+        T neighbor = neighborhood.generateNeighbor(currentSolution);
+        double neighborScore = problem.evaluate(neighbor);
+        double currentScore = problem.evaluate(currentSolution);
+        double bestScore = currentScore;
+        // assuming minimization
+        while(currentScore >= neighborScore){
+            currentScore = neighborScore;
+            currentSolution = neighbor;
+            neighbor = neighborhood.generateNeighbor(currentSolution);
+            neighborScore = problem.evaluate(neighbor);
+
+        }
+        return currentSolution;
+
     }
 }
 

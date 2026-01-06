@@ -44,6 +44,12 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
         return solution;
     }
 
+    public PackingSolution createGreedyState(){
+        PackingSolution solution = new PackingSolution(boxSize);
+        Box box1 = solution.createNewBox();
+        return solution;
+    }
+
     @Override
     public double evaluate(PackingSolution solution) {
         // TODO: add penalties, eg for nearly empty boxes or overlap
@@ -53,7 +59,7 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
 
     @Override
     public boolean isFeasible(PackingSolution solution) {
-
+        // TODO fix invalid usage of rectangle get width!!
         // do all rectangles exist in solution
         if (!solution.areRectanglesInSolution(rectangles)){
             return false;
