@@ -16,7 +16,12 @@ public class Placement {
     public Box getBox(){
         return this.box;
     }
-
+    public int getX(){
+        return x;
+    }
+    public int getY(){
+        return y;
+    }
     public void rotate(){
         // this only rotates, it's up to the calling function to check if
         // the resulting rectangle is within valid bounds
@@ -24,20 +29,17 @@ public class Placement {
         // we do not implement a change in origin point, so that the rotated rectangle still has the same
         // origin, just height and width are switched
     }
-    public int getWidth(Rectangle r){
+    public int getWidth(PackingRectangle r){
         return rotated ? r.getHeight() : r.getWidth();
     }
 
-    public int getHeight(Rectangle r){
+    public int getHeight(PackingRectangle r){
         return rotated ? r.getWidth() : r.getHeight();
     }
 
-    public boolean isValid(Rectangle r){
-        int L = box.L;
-        if (x + getWidth(r) > L){
-            return false;
-        }
-        return y + getHeight(r) <= L;
-    }
+    public boolean isValid(PackingRectangle r){
+       return x >= 0 && y >= 0 &&
+               x + getWidth(r) <= box.L &&
+               y + getHeight(r) <= box.L;}
 
 }

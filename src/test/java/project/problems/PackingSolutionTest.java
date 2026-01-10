@@ -15,9 +15,9 @@ public class PackingSolutionTest {
     private PackingSolution solution;
     private Box box1;
     private Box box2;
-    private Rectangle rect1;
-    private Rectangle rect2;
-    private Rectangle rect3;
+    private PackingRectangle rect1;
+    private PackingRectangle rect2;
+    private PackingRectangle rect3;
 
     @BeforeEach
     void setUp() {
@@ -28,12 +28,12 @@ public class PackingSolutionTest {
         box2 = solution.createNewBox(); // 1
 
         // Create some rectangles
-        rect1 = new Rectangle(2, 3);
-        rect2 = new Rectangle(4, 5);
-        rect3 = new Rectangle(6, 7);
+        rect1 = new PackingRectangle(2, 3);
+        rect2 = new PackingRectangle(4, 5);
+        rect3 = new PackingRectangle(6, 7);
 
         // Set up placements
-        Map<Rectangle, Placement> placements = new HashMap<>();
+        Map<PackingRectangle, Placement> placements = new HashMap<>();
         placements.put(rect1, new Placement(box1, 0, 0, false));
         placements.put(rect2, new Placement(box1, 1, 1, true));
         placements.put(rect3, new Placement(box2, 2, 2, false));
@@ -52,9 +52,9 @@ public class PackingSolutionTest {
 
     @Test
     void testGetRectangleByBoxID() {
-        List<Rectangle> box1Rects = solution.getRectangleByBoxID(0);
-        List<Rectangle> box2Rects = solution.getRectangleByBoxID(1);
-        List<Rectangle> box3Rects = solution.getRectangleByBoxID(3); // non-existent box
+        List<PackingRectangle> box1Rects = solution.getRectangleByBoxID(0);
+        List<PackingRectangle> box2Rects = solution.getRectangleByBoxID(1);
+        List<PackingRectangle> box3Rects = solution.getRectangleByBoxID(3); // non-existent box
 
         // Check box1 returns the correct rectangles
         assertEquals(2, box1Rects.size());

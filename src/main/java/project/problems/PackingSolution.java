@@ -8,11 +8,12 @@ import java.util.*;
 /**
  * This class represents the current placement of Rectangles.
  */
-public class PackingSolution implements Solution<Rectangle> {
+public class PackingSolution implements Solution<PackingRectangle> {
     private final int boxSize;
     private List<Box> boxes;
-    private Map<Rectangle, Placement> placements;
+    private Map<PackingRectangle, Placement> placements;
     private BoxIDGenerator IDgenerator;
+    private PackingRectangle lastRec;
     private static final char[] SYMBOLS =
             ("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
                                 "abcdefghijklmnopqrstuvwxyz" +
@@ -27,46 +28,80 @@ public class PackingSolution implements Solution<Rectangle> {
         this.boxes = new ArrayList<>();
         this.placements = new HashMap<>();
         this.IDgenerator = new BoxIDGenerator(0); // start at 0
+        this.lastRec = null;
     }
 
-
+    public int getBoxSize(){
+        return this.boxSize;
+    }
     @Override
     public PackingSolution copy() {
 
-        HashMap<Rectangle, Placement> newPlacements = new HashMap<>();
-        PackingSolution copy = new PackingSolution(boxSize);
-        for (Map.Entry<Rectangle, Placement> entry: placements.entrySet()){
-            Rectangle rec = entry.getKey();
-            Placement oldPlace = entry.getValue();
+        PackingSolution copy = new PackingSolution(this.boxSize);
 
-            Placement newP = new Placement(oldPlace.getBox(), oldPlace.x, oldPlace.y, oldPlace.rotated);
-            newPlacements.put(rec, newP);
-            copy.addBox(oldPlace.getBox());
+        // 1️⃣ Copy boxes
+        Map<Integer, Box> boxMap = new HashMap<>();
+        for (Box b : this.boxes) {
+            Box bCopy = b.copy();
+            boxMap.put(b.getID(), bCopy);
+            copy.addBox(bCopy);
         }
+
+        // 2️⃣ Copy rectangles + placements
+        Map<PackingRectangle, Placement> newPlacements = new HashMap<>();
+
+        for (Map.Entry<PackingRectangle, Placement> e : this.placements.entrySet()) {
+
+            PackingRectangle oldRec = e.getKey();
+            Placement oldPl = e.getValue();
+
+
+            Box boxCopy = boxMap.get(oldPl.getBox().getID());
+
+            Placement plCopy = new Placement(
+                    boxCopy,
+                    oldPl.x,
+                    oldPl.y,
+                    oldPl.rotated
+            );
+
+            newPlacements.put(oldRec, plCopy);
+        }
+
         copy.setPlacements(newPlacements);
 
         copy.IDgenerator = this.IDgenerator.copy();
+        copy.lastRec = this.lastRec == null ? null : this.lastRec.copy();
+
         return copy;
     }
     public BoxIDGenerator getGen(){return this.IDgenerator;}
     @Override
-    public void applyChange(Rectangle elem) {
+    public void applyChange(PackingRectangle elem) {
+
         placeFirstPlacementInPlace(elem);
+        this.lastRec = elem;
     }
 
+    public PackingRectangle getLastRec(){
+        return this.lastRec;
+    }
+    public void setLastRec(PackingRectangle rec){
+        this.lastRec = rec;
+    }
 
 
     // ------ Placement related methods -------
-    public void placeFirstPlacementInPlace(Rectangle rec){
+    public void placeFirstPlacementInPlace(PackingRectangle rec){
         Placement bestPlace = findFirstPlacement(rec);
         this.placements.put(rec,bestPlace);
     }
-    public Placement findPlacementInBox(Rectangle rec, Box box)
+    public Placement findPlacementInBox(PackingRectangle rec, Box box)
     {
         int boxID = box.getID();
         try
         {
-            List<Rectangle> recsOfBox = getRectangleByBoxID(boxID);
+            List<PackingRectangle> recsOfBox = getRectangleByBoxID(boxID);
             // unrotated
             for (int x = 0; x<= boxSize-rec.getWidth(); x++)
             {
@@ -76,7 +111,7 @@ public class PackingSolution implements Solution<Rectangle> {
                     // Placement placementCandidate2 = new Placement(box, x,y,true);
                     boolean conflict1 = false;
                     //boolean conflict2 = false;
-                    for (Rectangle recInBox : recsOfBox)
+                    for (PackingRectangle recInBox : recsOfBox)
                     {
                         Placement activePlacement = placements.get(recInBox);
                         if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate1))
@@ -101,7 +136,7 @@ public class PackingSolution implements Solution<Rectangle> {
                     Placement placementCandidate2 = new Placement(box, x,y,true);
                     boolean conflict = false;
 
-                    for (Rectangle recInBox : recsOfBox)
+                    for (PackingRectangle recInBox : recsOfBox)
                     {
                         Placement activePlacement = placements.get(recInBox);
                         if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate2))
@@ -121,13 +156,13 @@ public class PackingSolution implements Solution<Rectangle> {
         }
         return null;
     }
-    public Placement findFirstPlacement(Rectangle rec){
+    public Placement findFirstPlacement(PackingRectangle rec){
         for (Box box : this.boxes)
         {
             // for each box, get rectangles and placements
             int boxID = box.getID();
             try {
-                List<Rectangle> recsOfBox = getRectangleByBoxID(boxID);
+                List<PackingRectangle> recsOfBox = getRectangleByBoxID(boxID);
                 // unrotated
                 for (int x = 0; x<= boxSize-rec.getWidth(); x++)
                 {
@@ -137,7 +172,7 @@ public class PackingSolution implements Solution<Rectangle> {
                        // Placement placementCandidate2 = new Placement(box, x,y,true);
                         boolean conflict1 = false;
                         //boolean conflict2 = false;
-                        for (Rectangle recInBox : recsOfBox)
+                        for (PackingRectangle recInBox : recsOfBox)
                         {
                             Placement activePlacement = placements.get(recInBox);
                             if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate1))
@@ -162,7 +197,7 @@ public class PackingSolution implements Solution<Rectangle> {
                         Placement placementCandidate2 = new Placement(box, x,y,true);
                         boolean conflict = false;
 
-                        for (Rectangle recInBox : recsOfBox)
+                        for (PackingRectangle recInBox : recsOfBox)
                         {
                             Placement activePlacement = placements.get(recInBox);
                             if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate2))
@@ -188,19 +223,19 @@ public class PackingSolution implements Solution<Rectangle> {
         Box newBox = createNewBox();
         return new Placement(newBox,0,0,false);
     }
-    public Placement getPlacement(Rectangle rect) {
+    public Placement getPlacement(PackingRectangle rect) {
         return placements.get(rect);
     }
 
-    public void setPlacements(Map<Rectangle, Placement> placements){
+    public void setPlacements(Map<PackingRectangle, Placement> placements){
         this.placements = placements;
     }
 
-    public void addPlacement(Rectangle rect, Placement placement) {
+    public void addPlacement(PackingRectangle rect, Placement placement) {
         placements.put(rect, placement);
     }
 
-    public Map<Rectangle, Placement> getPlacements(){
+    public Map<PackingRectangle, Placement> getPlacements(){
         return placements;
     }
 
@@ -238,7 +273,7 @@ public class PackingSolution implements Solution<Rectangle> {
         return  boxIds;
     }
 
-    public Box getBoxOfRectangle(Rectangle rec){
+    public Box getBoxOfRectangle(PackingRectangle rec){
         Placement p = placements.get(rec);
         return p.getBox();
     }
@@ -277,7 +312,7 @@ public class PackingSolution implements Solution<Rectangle> {
     /*
     First time placement of the rectangles!
      */
-    public PackingSolution placeRectangleInCopy(Rectangle rec, int boxID, int x, int y, boolean rotated){
+    public PackingSolution placeRectangleInCopy(PackingRectangle rec, int boxID, int x, int y, boolean rotated){
         PackingSolution copy = this.copy();
         Box newBox = new Box(boxSize, boxID);
         if (!copy.boxExists(boxID)){
@@ -294,13 +329,13 @@ public class PackingSolution implements Solution<Rectangle> {
         return copy;
 
     }
-    public boolean areRectanglesInSolution(Collection<Rectangle> rectangles){
+    public boolean areRectanglesInSolution(Collection<PackingRectangle> packingRectangles){
         // List<Boxes>
         Set<Integer> boxIds = new HashSet<>();
         for (Box box : boxes) {
             boxIds.add(box.getID());
         }
-        for (Rectangle rec : rectangles) {
+        for (PackingRectangle rec : packingRectangles) {
             Placement placement = placements.get(rec);
             if (placement == null || !boxIds.contains(placement.getBox().getID())) {
                 return false;
@@ -308,7 +343,7 @@ public class PackingSolution implements Solution<Rectangle> {
         }
         return true;
     }
-    public boolean doesSolutionContainThisRectangle(Rectangle r){
+    public boolean doesSolutionContainThisRectangle(PackingRectangle r){
         Set<Integer> boxIds = new HashSet<>();
         for (Box box : boxes) {
             boxIds.add(box.getID());
@@ -318,11 +353,14 @@ public class PackingSolution implements Solution<Rectangle> {
     }
 
 
-    public PackingSolution createNeighborByMove(Rectangle rec, int dx, int dy){
+    public PackingSolution createNeighborByMove(PackingRectangle rec, int dx, int dy){
         // copy current solution
+
         PackingSolution copy = this.copy();
+        copy.setLastRec(rec);
         // get old placement of rec
         Placement p = copy.getPlacement(rec);
+
         // create new placement and place in copy
         copy.placements.put(
                 rec,
@@ -336,9 +374,10 @@ public class PackingSolution implements Solution<Rectangle> {
         return copy;
     }
 
-    public PackingSolution createNeighborByRotate(Rectangle rec){
+    public PackingSolution createNeighborByRotate(PackingRectangle rec){
         // copy current solution
         PackingSolution copy = this.copy();
+        copy.setLastRec(rec);
         // get old placement of rec
         Placement p = copy.getPlacement(rec);
         // create new placement and place in copy
@@ -354,66 +393,82 @@ public class PackingSolution implements Solution<Rectangle> {
         return copy;
     }
 
-    public PackingSolution createNeighborByBoxSwitch(Rectangle rec, int targetBoxID, boolean fallbackRandom, Random random){
+    public PackingSolution createNeighborByBoxSwitch(PackingRectangle rec, int targetBoxID, boolean tryValid, Random random){
         PackingSolution copy = this.copy();
-        Box targetBox = getBoxByBoxID(targetBoxID);
+        copy.setLastRec(rec);
+        Box targetBox = copy.getBoxByBoxID(targetBoxID);
+        Box sourceBox = copy.getPlacements().get(rec).getBox();
+
         assert targetBox != null;
-        if (!fallbackRandom) {
+
+        if (tryValid) {
             Placement placement = copy.findPlacementInBox(rec, targetBox);
             if (placement != null) {
                 copy.placements.put(rec, placement);
                 return copy;
             }
 
-            // fallback to random placement
-            return createNeighborByBoxSwitch(rec, targetBoxID, true, random);
         }
 
         Placement oldPlacement = copy.placements.get(rec);
-
-        int maxX = copy.boxSize - oldPlacement.getWidth(rec);
-        int maxY = copy.boxSize - oldPlacement.getHeight(rec);
+        boolean rotated = random.nextBoolean();
+        int width = oldPlacement.getWidth(rec);
+        int height = oldPlacement.getHeight(rec);
+        if(rotated){
+            int heightCopy = height;
+            height = width;
+            width=heightCopy;
+        }
+        int maxX = copy.boxSize - width;
+        int maxY = copy.boxSize - height;
 
         int x = random.nextInt(maxX);
         int y = random.nextInt(maxY);
-        boolean rotated = random.nextBoolean();
+
+
 
         Placement randomPlacement = new Placement(targetBox, x, y, rotated);
         copy.placements.put(rec, randomPlacement);
-        removeBoxIfEmpty(targetBox);
+        boolean removed = removeBoxIfEmpty(sourceBox, copy);
         return copy;
     }
-    private boolean removeBoxIfEmpty(Box box){
-        List<Rectangle> activeRecs = getRectangleByBoxID(box.getID());
+    private boolean removeBoxIfEmpty(Box box, PackingSolution copy){
+        List<PackingRectangle> activeRecs = copy.getRectangleByBoxID(box.getID());
+        for (PackingRectangle rec : activeRecs){
+            System.out.println("an active rec");
+        }
+        Box copyBox = copy.getBoxByBoxID(box.getID());
         if (activeRecs.isEmpty()){
-            this.boxes.remove(box);
+            copy.boxes.remove(copyBox);
+            System.out.print("removed box with boxID");
+            System.out.print(copyBox.getID());
             return true;
         }
         return false;
     }
-    public Rectangle getRandomRectangle(Random random){
+    public PackingRectangle getRandomRectangle(Random random){
         int index = random.nextInt(this.getNumberOfBoxes());
-        List<Rectangle> rectangles = new ArrayList<Rectangle>(this.placements.keySet());
-        return rectangles.get(index);
+        List<PackingRectangle> packingRectangles = new ArrayList<PackingRectangle>(this.placements.keySet());
+        return packingRectangles.get(index);
 
     }
-    public List<Rectangle> getRectangleByBoxID(int boxID) {
-        List<Rectangle> rectangles = new ArrayList<Rectangle>();
+    public List<PackingRectangle> getRectangleByBoxID(int boxID) {
+        List<PackingRectangle> packingRectangles = new ArrayList<PackingRectangle>();
         Box thisBox = getBoxByBoxID(boxID);
-        for (Map.Entry<Rectangle, Placement> entry : this.getPlacements().entrySet())
+        for (Map.Entry<PackingRectangle, Placement> entry : this.getPlacements().entrySet())
         {
-            Rectangle r = entry.getKey();
+            PackingRectangle r = entry.getKey();
             Placement p = entry.getValue();
             // if the box connected with this rectangle-placement pair is the same box given by the ID, save the rec
-            if (p.getBox().equals(thisBox))
+            if (p.getBox().getID()==thisBox.getID())
             {
-                rectangles.add(r);
+                packingRectangles.add(r);
             }
 
         }
-        return rectangles;
+        return packingRectangles;
     }
-    public static boolean rectangleOverlap(Rectangle r1,Rectangle r2,Placement p1,Placement p2){
+    public static boolean rectangleOverlap(PackingRectangle r1, PackingRectangle r2, Placement p1, Placement p2){
         int x1 = p1.x;
         int y1 = p1.y;
         int w1 = p1.getWidth(r1);
@@ -443,16 +498,16 @@ public class PackingSolution implements Solution<Rectangle> {
     }
 
     @Override
-    public void printSolution(Solution<Rectangle> sol)
+    public void printSolution(Solution<PackingRectangle> sol)
     {
         PackingSolution solution = (PackingSolution) sol;
         int size = solution.boxSize;
 
         // assign a unique character to each rectangle
-        Map<Rectangle, Character> rectSymbols = new HashMap<>();
+        Map<PackingRectangle, Character> rectSymbols = new HashMap<>();
         int symbolIndex = 0;
 
-        for (Rectangle r : solution.getPlacements().keySet()) {
+        for (PackingRectangle r : solution.getPlacements().keySet()) {
             if (symbolIndex >= SYMBOLS.length) {
                 throw new IllegalStateException(
                         "Too many rectangles to visualize (" + symbolIndex + ")"
@@ -471,8 +526,8 @@ public class PackingSolution implements Solution<Rectangle> {
             }
 
             // fill grid with rectangles placed in this box
-            for (Map.Entry<Rectangle, Placement> entry : solution.getPlacements().entrySet()) {
-                Rectangle r = entry.getKey();
+            for (Map.Entry<PackingRectangle, Placement> entry : solution.getPlacements().entrySet()) {
+                PackingRectangle r = entry.getKey();
                 Placement p = entry.getValue();
 
                 if (!p.getBox().equals(box)) continue;

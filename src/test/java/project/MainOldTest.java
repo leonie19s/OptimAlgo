@@ -2,7 +2,6 @@ package project;
 
 import org.junit.jupiter.api.Test;
 import project.algorithms.Algorithm;
-import project.neighborhoods.GeometryBased;
 import project.neighborhoods.Neighborhood;
 import project.problems.*;
 import project.selection.SelectionStrategy;
@@ -14,7 +13,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class MainTest {
+public class MainOldTest {
 
     int boxSize = 7;
     int upperW = 4;
@@ -29,20 +28,20 @@ public class MainTest {
     TestInstancesGenerator gen = new TestInstancesGenerator( boxSize,  upperW,  upperH,  seed,  nRecs,  nStartBox,  algorithm);
     @Test
     void GreedyTest(){
-        List<Rectangle> recs = gen.generateRandomRecs();
+        List<PackingRectangle> recs = gen.generateRandomRecs();
         RectanglePackingProblem problem = gen.getProblem(recs);
         Neighborhood<PackingSolution> neigh = gen.getNeighborhood(neighborhood);
 
         String selectionStrategy = "BiggestFirst";
-        SelectionStrategy<Rectangle> strat = gen.getSelectionStrategy(selectionStrategy);
+        SelectionStrategy<PackingRectangle> strat = gen.getSelectionStrategy(selectionStrategy);
         Algorithm<?, PackingSolution> algorithm = gen.getAlgorithm(recs, problem, neigh, strat);
         PackingSolution greedyState = problem.createGreedyState();
-        PackingSolution solution = ((Algorithm<List<Rectangle>, PackingSolution>) algorithm).run(recs, greedyState);
+        PackingSolution solution = ((Algorithm<List<PackingRectangle>, PackingSolution>) algorithm).run(recs, greedyState);
         assertTrue(problem.isFeasible(solution));
-        Rectangle largestRec = selectRectangle(recs, RectangleCriterion.AREA,true);
-        Rectangle smallestRec = selectRectangle(recs, RectangleCriterion.AREA,false);
+        PackingRectangle largestRec = selectRectangle(recs, RectangleCriterion.AREA,true);
+        PackingRectangle smallestRec = selectRectangle(recs, RectangleCriterion.AREA,false);
         // assert that largestRec is in first box, smallestRec is in last Box
-        Map<Rectangle, Placement> finalPlacements = solution.getPlacements();
+        Map<PackingRectangle, Placement> finalPlacements = solution.getPlacements();
         Placement largest = finalPlacements.get(largestRec);
         Placement smallest = finalPlacements.get(smallestRec);
         List<Box> boxes = solution.getBoxes();
@@ -53,20 +52,20 @@ public class MainTest {
         assertEquals(0, largest.getBox().getID());
         solution.printSolution(solution);
 
-        Rectangle largestSidelength = selectRectangle(recs, RectangleCriterion.MAX_SIDE,true);
-        Rectangle smallestSidelength = selectRectangle(recs, RectangleCriterion.MAX_SIDE,false);
+        PackingRectangle largestSidelength = selectRectangle(recs, RectangleCriterion.MAX_SIDE,true);
+        PackingRectangle smallestSidelength = selectRectangle(recs, RectangleCriterion.MAX_SIDE,false);
 
     }
-    public static Rectangle selectRectangle(
-            List<Rectangle> rectangles,
+    public static PackingRectangle selectRectangle(
+            List<PackingRectangle> packingRectangles,
             RectangleCriterion criterion,
             boolean selectLargest
     ) {
-        if (rectangles == null || rectangles.isEmpty()) {
+        if (packingRectangles == null || packingRectangles.isEmpty()) {
             throw new IllegalArgumentException("Rectangle list is empty");
         }
 
-        Comparator<Rectangle> comparator;
+        Comparator<PackingRectangle> comparator;
 
         switch (criterion) {
             case AREA:
@@ -86,8 +85,8 @@ public class MainTest {
         }
 
         return selectLargest
-                ? rectangles.stream().max(comparator).get()
-                : rectangles.stream().min(comparator).get();
+                ? packingRectangles.stream().max(comparator).get()
+                : packingRectangles.stream().min(comparator).get();
     }
 
 }

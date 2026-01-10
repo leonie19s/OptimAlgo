@@ -7,20 +7,20 @@ import java.util.Map;
 
 public class RectanglePackingProblem implements OptimizationProblem<PackingSolution> {
 
-    private final List<Rectangle> rectangles;
+    private final List<PackingRectangle> packingRectangles;
     private final int boxSize;
     public List<Box> initialBoxes;
     // evtl placement strategy
 
-    public RectanglePackingProblem(List<Rectangle> rectangles, int boxSize) {
+    public RectanglePackingProblem(List<PackingRectangle> packingRectangles, int boxSize) {
 
-        this.rectangles = rectangles;
+        this.packingRectangles = packingRectangles;
         this.boxSize = boxSize;
 
     }
 
-    public List<Rectangle> getRectangles() {
-        return rectangles;
+    public List<PackingRectangle> getRectangles() {
+        return packingRectangles;
     }
 
     @Override
@@ -28,7 +28,7 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
         // create new Box for each rectanlge
         PackingSolution solution = new PackingSolution(boxSize);
 
-        for (Rectangle r : rectangles) {
+        for (PackingRectangle r : packingRectangles) {
             Box box = solution.createNewBox();
 
             Placement placement = new Placement(
@@ -37,6 +37,7 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
                     0,
                     false   // keine Rotation
             );
+            solution.setLastRec(r);
 
             solution.addPlacement(r, placement);
         }
@@ -61,39 +62,43 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
     public boolean isFeasible(PackingSolution solution) {
         // TODO fix invalid usage of rectangle get width!!
         // do all rectangles exist in solution
-        if (!solution.areRectanglesInSolution(rectangles)){
+        if (!solution.areRectanglesInSolution(packingRectangles)){
             return false;
         }
         // are all rectangles placed in a valid way within their box
-        for (Map.Entry<Rectangle, Placement> entry : solution.getPlacements().entrySet()) {
-            Rectangle r = entry.getKey();
+        for (Map.Entry<PackingRectangle, Placement> entry : solution.getPlacements().entrySet()) {
+            PackingRectangle r = entry.getKey();
             Placement p = entry.getValue();
             if (!p.isValid(r)) {
+                System.out.println("this happend");
                 return false;
             }
+
         }
         // are they non-overlapping
         ArrayList<Box> boxes = (ArrayList<Box>) solution.getBoxes();
             for (Box box : boxes)
                 {
                 try {
-                    List<Rectangle> rectanglesInThisBox = solution.getRectangleByBoxID(box.getID());
-                    for (int i = 0; i < rectanglesInThisBox.size(); i++) {
-                        Rectangle r1 = rectanglesInThisBox.get(i);
-                        int h1 = r1.getHeight();
-                        int w1 = r1.getWidth();
+                    List<PackingRectangle> rectanglesInThisBoxes = solution.getRectangleByBoxID(box.getID());
+                    for (int i = 0; i < rectanglesInThisBoxes.size(); i++) {
+                        PackingRectangle r1 = rectanglesInThisBoxes.get(i);
+
                         Placement p1 = solution.getPlacement(r1);
+                        int h1 = p1.getHeight(r1);
+                        int w1 = p1.getWidth(r1);
                         int x1 = p1.x;
                         int y1 = p1.y;
 
-                        for (int j = i+1; j < rectanglesInThisBox.size(); j++)
+                        for (int j = i+1; j < rectanglesInThisBoxes.size(); j++)
                         {
-                            Rectangle r2 = rectanglesInThisBox.get(j);
+                            PackingRectangle r2 = rectanglesInThisBoxes.get(j);
                             Placement p2 = solution.getPlacement(r2);
-                            int h2 = r2.getHeight();
-                            int w2 = r2.getWidth();
+
                             int x2 = p2.x;
                             int y2 = p2.y;
+                            int h2 = p2.getHeight(r2);
+                            int w2 = p2.getWidth(r2);
                             if (overlaps(x1,y1,w1,h1,x2,y2,w2,h2)){
                                 return false;
                             }
@@ -121,9 +126,9 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
     Accepts a PackingSolution, checks if all rectangles are placed in a valid way within the boxes
      */
     public boolean areRectanglesWithinBoxLength(PackingSolution solution) {
-        HashMap<Rectangle, Placement> placements = (HashMap<Rectangle, Placement>) solution.getPlacements();
+        HashMap<PackingRectangle, Placement> placements = (HashMap<PackingRectangle, Placement>) solution.getPlacements();
 
-        for (Rectangle rec : rectangles) {
+        for (PackingRectangle rec : packingRectangles) {
             Placement placement = placements.get(rec);
             boolean check = placement.isValid(rec);
             if (!check) {

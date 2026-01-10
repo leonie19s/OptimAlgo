@@ -7,12 +7,12 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class RectanglePackingProblemTest {
+public class PackingRectanglePackingProblemTest {
     private PackingSolution solution;
     private int boxSize = 10;
-    private Rectangle rect1;
-    private Rectangle rect2;
-    private Rectangle rect3;
+    private PackingRectangle rect1;
+    private PackingRectangle rect2;
+    private PackingRectangle rect3;
     private Box box1;
     private RectanglePackingProblem problem;
 
@@ -20,17 +20,17 @@ public class RectanglePackingProblemTest {
     @BeforeEach
         void setUp() {
             // Create rectangles
-            rect1 = new Rectangle(2, 3);
-            rect2 = new Rectangle(3, 2);
-            rect3 = new Rectangle(4, 4);
+            rect1 = new PackingRectangle(2, 3);
+            rect2 = new PackingRectangle(3, 2);
+            rect3 = new PackingRectangle(4, 4);
 
-            List<Rectangle> rectangles = new ArrayList<>();
-            rectangles.add(rect1);
-            rectangles.add(rect2);
-            rectangles.add(rect3);
+            List<PackingRectangle> packingRectangles = new ArrayList<>();
+            packingRectangles.add(rect1);
+            packingRectangles.add(rect2);
+            packingRectangles.add(rect3);
 
             // Create the problem with all rectangles
-            problem = new RectanglePackingProblem(rectangles, boxSize);
+            problem = new RectanglePackingProblem(packingRectangles, boxSize);
 
             // Create a solution and box
             solution = new PackingSolution(boxSize);
@@ -68,7 +68,7 @@ public class RectanglePackingProblemTest {
             // Force an invalid placement (e.g., negative coordinates)
             solution.addPlacement(rect1, new Placement(box1, -1, -1, false) {
                 @Override
-                public boolean isValid(Rectangle r) {
+                public boolean isValid(PackingRectangle r) {
                     return false;
                 }
             });

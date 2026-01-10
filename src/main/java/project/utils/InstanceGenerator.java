@@ -1,7 +1,6 @@
 package project.utils;
 
-import project.problems.PackingSolution;
-import project.problems.Rectangle;
+import project.problems.PackingRectangle;
 import project.problems.RectanglePackingProblem;
 
 import java.util.ArrayList;
@@ -31,16 +30,16 @@ public class InstanceGenerator {
 
     public RectanglePackingProblem generate(){
         Random rand = new Random(this.seed);
-        List<Rectangle> rectangles = new ArrayList<>();
+        List<PackingRectangle> packingRectangles = new ArrayList<>();
         for (int i = 0; i < nRectangles; i++) {
 
             int h = rand.nextInt(upperLimitH-lowerLimitH +1)+ lowerLimitH;
             int w = rand.nextInt(upperLimitW-lowerLimitW +1)+ lowerLimitW;
-            Rectangle thisRec = new Rectangle(w,h);
-            rectangles.add(thisRec);
+            PackingRectangle thisRec = new PackingRectangle(w,h);
+            packingRectangles.add(thisRec);
 
         }
-        return new RectanglePackingProblem(rectangles,L);
+        return new RectanglePackingProblem(packingRectangles,L);
     }
 
 }

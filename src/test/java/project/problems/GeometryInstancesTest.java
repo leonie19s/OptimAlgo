@@ -4,41 +4,40 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class GeometryInstancesTest {
     final int boxSize = 15;
 
-    public Rectangle getRandomRectangle(){
+    public PackingRectangle getRandomRectangle(){
         Random rand = new Random();
         int min = 1;
         int max = boxSize+1;
 
         int rW = rand.nextInt(max-min+1)+min;
         int rH = rand.nextInt(max-min+1)+min;
-        return new Rectangle(rW, rH);
+        return new PackingRectangle(rW, rH);
     }
 
-    public ArrayList<Rectangle> getRandomRectangles(int n){
-        ArrayList<Rectangle> rectangles = new ArrayList<>();
+    public ArrayList<PackingRectangle> getRandomRectangles(int n){
+        ArrayList<PackingRectangle> packingRectangles = new ArrayList<>();
         for (int i = 0; i < n; i++) {
-            rectangles.add(getRandomRectangle());
+            packingRectangles.add(getRandomRectangle());
         }
-        return rectangles;
+        return packingRectangles;
     }
     @Test
     void RectangleCreationTest(){
 
-        Rectangle testRec = new Rectangle(5,10);
+        PackingRectangle testRec = new PackingRectangle(5,10);
         assert testRec.height == 10;
         assert  testRec.width == 5;
 
 
         int nRecs = 5;
-        ArrayList<Rectangle> recs = getRandomRectangles(nRecs);
-        for (Rectangle rect : recs)
+        ArrayList<PackingRectangle> recs = getRandomRectangles(nRecs);
+        for (PackingRectangle rect : recs)
         {
             assertTrue(rect.width <= boxSize,
                     "Rectangle width too large: " + rect.width);
@@ -57,7 +56,7 @@ public class GeometryInstancesTest {
 
     @Test
     void PlacementCorrectnessTest(){
-       Rectangle rec = getRandomRectangle();
+       PackingRectangle rec = getRandomRectangle();
        // h1 w7
        int h = rec.height;
        int w = rec.width;

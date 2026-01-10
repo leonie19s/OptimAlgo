@@ -1,13 +1,11 @@
 package project;
 
 import project.algorithms.Algorithm;
-import project.algorithms.Greedy;
-import project.algorithms.LocalSearch;
 import project.neighborhoods.GeometryBased;
 import project.neighborhoods.Neighborhood;
 import project.neighborhoods.RuleBased;
 import project.problems.PackingSolution;
-import project.problems.Rectangle;
+import project.problems.PackingRectangle;
 import project.problems.RectanglePackingProblem;
 import project.selection.BiggestFirst;
 import project.selection.LargestSidelengthFirst;
@@ -43,23 +41,23 @@ public class TestInstancesGenerator {
 
     }
 
-    public List<Rectangle>generateRandomRecs()
+    public List<PackingRectangle>generateRandomRecs()
     {
         Random rand = new Random(this.seed);
-        List<Rectangle> rectangles = new ArrayList<>();
+        List<PackingRectangle> packingRectangles = new ArrayList<>();
         int min = 1;
             for (int i = 0; i < this.nRecs; i++) {
                 int h = rand.nextInt(upperH - min + 1) + min;
                 int w = rand.nextInt(upperW - min + 1) + min;
-                Rectangle thisRec = new Rectangle(w, h);
-                rectangles.add(thisRec);
+                PackingRectangle thisRec = new PackingRectangle(w, h);
+                packingRectangles.add(thisRec);
             }
-        return rectangles;
+        return packingRectangles;
     }
-    public RectanglePackingProblem getProblem(List<Rectangle> recs){
+    public RectanglePackingProblem getProblem(List<PackingRectangle> recs){
     return new RectanglePackingProblem(recs,this.boxSize);}
 
-    public SelectionStrategy<Rectangle> getSelectionStrategy(String selectionStrategy){
+    public SelectionStrategy<PackingRectangle> getSelectionStrategy(String selectionStrategy){
         if (selectionStrategy.equals("LargestSideLengthFirst")) {
             return new LargestSidelengthFirst();
         }
@@ -73,7 +71,7 @@ public class TestInstancesGenerator {
         return new GeometryBased();
     }
 
-    public Algorithm<?, PackingSolution> getAlgorithm(List<Rectangle> recs, RectanglePackingProblem problem, Neighborhood<PackingSolution> neighborhood,SelectionStrategy<Rectangle> selectionStrategy) {
+    public Algorithm<?, PackingSolution> getAlgorithm(List<PackingRectangle> recs, RectanglePackingProblem problem, Neighborhood<PackingSolution> neighborhood, SelectionStrategy<PackingRectangle> selectionStrategy) {
         return AlgorithmFactory.createAlgorithm(
                 this.algorithm,
                 problem,

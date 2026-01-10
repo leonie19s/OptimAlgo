@@ -1,10 +1,10 @@
 package project.problems;
 
-public class Rectangle {
+public class PackingRectangle {
     public int width;
     public int height;
 
-    public Rectangle(int width, int height) {
+    public PackingRectangle(int width, int height) {
         this.width = width;
         this.height = height;
 
@@ -15,6 +15,10 @@ public class Rectangle {
 
     public int getHeight(){
         return height;
+    }
+
+    public PackingRectangle copy(){
+        return new PackingRectangle(this.width, this.height);
     }
 }
 

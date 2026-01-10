@@ -12,26 +12,26 @@ class SanityTest {
     @Test
     void createRectangleList() {
         // Liste erzeugen
-        List<Rectangle> rectangles = new ArrayList<>();
+        List<PackingRectangle> packingRectangles = new ArrayList<>();
 
         // Rechtecke hinzufügen
-        rectangles.add(new Rectangle(3, 4));
-        rectangles.add(new Rectangle(5, 2));
-        rectangles.add(new Rectangle(1, 6));
+        packingRectangles.add(new PackingRectangle(3, 4));
+        packingRectangles.add(new PackingRectangle(5, 2));
+        packingRectangles.add(new PackingRectangle(1, 6));
 
         // Optional: assert, dass alles drin ist
-        assertEquals(3, rectangles.size());
-        assertEquals(3, rectangles.get(0).getWidth());
-        assertEquals(4, rectangles.get(0).getHeight());
+        assertEquals(3, packingRectangles.size());
+        assertEquals(3, packingRectangles.get(0).getWidth());
+        assertEquals(4, packingRectangles.get(0).getHeight());
     }
     @Test
     void minimalTest() {
-        List<Rectangle> rectangles = new ArrayList<>();
+        List<PackingRectangle> packingRectangles = new ArrayList<>();
 
-        rectangles.add(new Rectangle(3, 4));
-        rectangles.add(new Rectangle(5, 2));
-        rectangles.add(new Rectangle(1, 6));
-        RectanglePackingProblem problem = new RectanglePackingProblem(rectangles,10);
+        packingRectangles.add(new PackingRectangle(3, 4));
+        packingRectangles.add(new PackingRectangle(5, 2));
+        packingRectangles.add(new PackingRectangle(1, 6));
+        RectanglePackingProblem problem = new RectanglePackingProblem(packingRectangles,10);
         PackingSolution sol = problem.createInitialSolution();
 
         assertNotNull(sol);

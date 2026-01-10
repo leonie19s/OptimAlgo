@@ -2,8 +2,9 @@ package project.neighborhoods;
 
 import project.problems.Box;
 import project.problems.PackingSolution;
-import project.problems.Rectangle;
+import project.problems.PackingRectangle;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -14,28 +15,33 @@ public class GeometryBased implements Neighborhood<PackingSolution> {
     int maxdx = 4;
     int mindy = 1;
     int maxdy = 4;
+    private final Random random = new Random();
 
 
     // here we create moves (move, rotation)
     // they are assessed and accepted/rejected by the algorithm (greedy, localsearch)
     @Override
-    public List<PackingSolution> generateNeighbors(PackingSolution solution) {
-        return List.of();
+    public List<PackingSolution> generateNeighbors(PackingSolution solution, int n) {
+        List<PackingSolution> neighbors = new ArrayList<>();
+        for (int i = 0; i <n; i++){
+            neighbors.add(generateNeighbor(solution));
+        }
+        return neighbors;
+
     }
 
     @Override
     public PackingSolution generateNeighbor(PackingSolution solution) {
-        Random random = new Random(123);// todo read seed from config prop
-        Rectangle randRec = solution.getRandomRectangle(random);
+        PackingRectangle randRec = solution.getRandomRectangle(random);
         GeometryMove move =
                 GeometryMove.values()[random.nextInt(GeometryMove.values().length)];
-        System.out.println(move.toString());
-        solution.printSolution(solution);
+
         return applyMove(move, solution, randRec,random );
 
     }
 
-    public PackingSolution applyMove(GeometryMove move, PackingSolution solution, Rectangle rec, Random random){
+    public PackingSolution applyMove(GeometryMove move, PackingSolution solution, PackingRectangle rec, Random random){
+
         switch (move)
         {
             case TRANSLATE:
@@ -51,7 +57,7 @@ public class GeometryBased implements Neighborhood<PackingSolution> {
                 Box srcBox = solution.getBoxOfRectangle(rec);
                 allBoxIDs.remove(srcBox.getID());
                 int targetIdx = random.nextInt(allBoxIDs.size());
-                return solution.createNeighborByBoxSwitch(rec, targetIdx, false, random);
+                return solution.createNeighborByBoxSwitch(rec, targetIdx, true, random);
 
             default:
                 System.out.println("Unexpected GeometryMove: " + move);

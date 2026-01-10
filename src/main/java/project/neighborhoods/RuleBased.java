@@ -6,7 +6,7 @@ import java.util.List;
 
 public class RuleBased implements Neighborhood<PackingSolution>  {
     @Override
-    public List<PackingSolution> generateNeighbors(PackingSolution solution) {
+    public List<PackingSolution> generateNeighbors(PackingSolution solution, int n) {
         return List.of();
     }
 

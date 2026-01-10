@@ -37,5 +37,9 @@ public class Box {
     }
 
 
+    public Box copy(){
+        return new Box(this.L, this.iD);
+    }
+
 }
 
