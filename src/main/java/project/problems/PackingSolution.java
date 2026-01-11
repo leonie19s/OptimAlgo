@@ -265,9 +265,9 @@ public class PackingSolution implements Solution<PackingRectangle> {
         return boxIds.contains(boxID);
     }
 
-    public List<Integer> getBoxIds(){
+    public List<Integer> getBoxIds(PackingSolution sol){
         List<Integer> boxIds = new ArrayList<Integer>();
-        for (Box box : boxes) {
+        for (Box box : sol.boxes) {
             boxIds.add(box.getID());
         }
         return  boxIds;
@@ -393,13 +393,19 @@ public class PackingSolution implements Solution<PackingRectangle> {
         return copy;
     }
 
-    public PackingSolution createNeighborByBoxSwitch(PackingRectangle rec, int targetBoxID, boolean tryValid, Random random){
+    public PackingSolution createNeighborByBoxSwitch(PackingRectangle rec,  boolean tryValid, Random random){
         PackingSolution copy = this.copy();
         copy.setLastRec(rec);
-        Box targetBox = copy.getBoxByBoxID(targetBoxID);
-        Box sourceBox = copy.getPlacements().get(rec).getBox();
+        List<Box> boxes = copy.getBoxes();
+        int idx = random.nextInt(boxes.size());
 
-        assert targetBox != null;
+        Box targetBox = boxes.get(idx);
+        if(boxes.size()==2){
+            Box currentBox = copy.placements.get(rec).getBox();
+            // pick the other box
+            targetBox = (boxes.get(0).getID() == currentBox.getID()) ? boxes.get(1) : boxes.get(0);
+        }
+
 
         if (tryValid) {
             Placement placement = copy.findPlacementInBox(rec, targetBox);
@@ -429,26 +435,36 @@ public class PackingSolution implements Solution<PackingRectangle> {
 
         Placement randomPlacement = new Placement(targetBox, x, y, rotated);
         copy.placements.put(rec, randomPlacement);
-        boolean removed = removeBoxIfEmpty(sourceBox, copy);
         return copy;
     }
-    private boolean removeBoxIfEmpty(Box box, PackingSolution copy){
-        List<PackingRectangle> activeRecs = copy.getRectangleByBoxID(box.getID());
-        for (PackingRectangle rec : activeRecs){
-            System.out.println("an active rec");
+    public boolean clearEmptyBoxes(PackingSolution s){
+        List<Box> recList = s.boxes;
+        List<Box> boxesToRemove = new ArrayList<>();
+        for (Box box : recList){
+            boolean isActive=false;
+            for (Map.Entry<PackingRectangle, Placement> e : s.placements.entrySet())
+            {
+
+                PackingRectangle r = e.getKey();
+                Placement p = e.getValue();
+                if (p.getBox().getID() == box.getID())
+                {
+                    isActive=true;
+                    break;
+                }
+
+            }
+            if (!isActive){
+                boxesToRemove.add(box);
+            }
         }
-        Box copyBox = copy.getBoxByBoxID(box.getID());
-        if (activeRecs.isEmpty()){
-            copy.boxes.remove(copyBox);
-            System.out.print("removed box with boxID");
-            System.out.print(copyBox.getID());
-            return true;
-        }
-        return false;
+
+        return recList.removeAll(boxesToRemove);
     }
     public PackingRectangle getRandomRectangle(Random random){
-        int index = random.nextInt(this.getNumberOfBoxes());
+
         List<PackingRectangle> packingRectangles = new ArrayList<PackingRectangle>(this.placements.keySet());
+        int index = random.nextInt(packingRectangles.size());
         return packingRectangles.get(index);
 
     }
@@ -558,5 +574,132 @@ public class PackingSolution implements Solution<PackingRectangle> {
         }
     }
 
+    @Override
+    public List<PackingRectangle> getPerm() {
+        List<PackingRectangle> perm = new ArrayList<>();
+
+        for (Map.Entry<PackingRectangle, Placement> entry : this.getPlacements().entrySet()) {
+            PackingRectangle r = entry.getKey();
+            perm.add(r);
+        }
+        return perm;
+    }
+
+    @Override
+    public void applyPerm(List<PackingRectangle> perm) {
+        for (PackingRectangle rec : perm){
+            applyChange(rec);
+        }
+    }
+
+    public static Map<Box, Double> computeCoverage(PackingSolution solution, boolean allowOverlap) {
+        Map<Box, Double> coverageMap = new HashMap<>();
+        int boxSize = solution.getBoxSize(); // assume square boxes
+
+        for (Box box : solution.getBoxes()) {
+
+            if (!allowOverlap) {
+                // simple sum of rectangle areas (faster)
+                int totalArea = 0;
+                for (Map.Entry<PackingRectangle, Placement> entry : solution.getPlacements().entrySet()) {
+                    Placement p = entry.getValue();
+                    if (!p.getBox().equals(box)) continue;
+
+                    int w = p.getWidth(entry.getKey());
+                    int h = p.getHeight(entry.getKey());
+                    totalArea += w * h;
+                }
+                double fraction = Math.min(1.0, (double) totalArea / (boxSize * boxSize));
+                coverageMap.put(box, fraction);
+            } else {
+                // exact overlap-aware calculation using sweep-line
+                Map<Integer, List<int[]>> rowIntervals = new HashMap<>();
+
+                for (Map.Entry<PackingRectangle, Placement> entry : solution.getPlacements().entrySet()) {
+                    Placement p = entry.getValue();
+                    if (!p.getBox().equals(box)) continue;
+
+                    int w = p.getWidth(entry.getKey());
+                    int h = p.getHeight(entry.getKey());
+                    int x0 = p.getX();
+                    int y0 = p.getY();
+
+                    for (int y = y0; y < y0 + h; y++) {
+                        rowIntervals.computeIfAbsent(y, k -> new ArrayList<>())
+                                .add(new int[]{x0, x0 + w});
+                    }
+                }
+
+                int coveredCells = 0;
+
+                for (int y : rowIntervals.keySet()) {
+                    List<int[]> intervals = rowIntervals.get(y);
+                    if (intervals.isEmpty()) continue;
+
+                    intervals.sort(Comparator.comparingInt(a -> a[0]));
+
+                    int currentStart = intervals.get(0)[0];
+                    int currentEnd = intervals.get(0)[1];
+
+                    for (int i = 1; i < intervals.size(); i++) {
+                        int[] interval = intervals.get(i);
+                        if (interval[0] <= currentEnd) {
+                            currentEnd = Math.max(currentEnd, interval[1]);
+                        } else {
+                            coveredCells += currentEnd - currentStart;
+                            currentStart = interval[0];
+                            currentEnd = interval[1];
+                        }
+                    }
+                    coveredCells += currentEnd - currentStart;
+                }
+
+                double fraction = (double) coveredCells / (boxSize * boxSize);
+                coverageMap.put(box, fraction);
+            }
+        }
+
+        return coverageMap;
+    }
+
+    /**
+     * Total coverage across all boxes
+     */
+    public static double totalCoverage(Map<Box, Double> coverageMap) {
+        return coverageMap.values().stream().mapToDouble(Double::doubleValue).sum();
+    }
+
+    /**
+     * Compare total coverage between two coverage maps
+     */
+    public static double compareTotalCoverage(Map<Box, Double> coverage1, Map<Box, Double> coverage2) {
+        return totalCoverage(coverage2) - totalCoverage(coverage1);
+    }
+
+    public List<PackingRectangle> getPermutation(){
+        return null;
+    }
+
+    public PackingSolution copyEmpty(){
+        return new PackingSolution(this.boxSize);
+
+    }
+    public boolean isEmpty(){
+        return this.IDgenerator.lastIssuedID() == -1;
+    }
+    public PackingSolution createNeighborFromPermutation(List<PackingRectangle> perm){
+        PackingSolution neighbor = this.copyEmpty();
+
+        if (!neighbor.isEmpty()){
+            return null;
+        }
+
+        for (PackingRectangle rec : perm){
+            neighbor.placeFirstPlacementInPlace(rec);
+        }
+
+        return neighbor;
+
+    }
 
 }

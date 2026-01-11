@@ -1,10 +1,11 @@
 package project.neighborhoods;
 
 import project.algorithms.Solution;
+import project.problems.PackingSolution;
 
 import java.util.List;
 
-public interface Neighborhood<T extends Solution> {
-    List<T> generateNeighbors(T solution, int n);
-    T generateNeighbor(T solution);
+public interface Neighborhood<Solution> {
+    List<Solution> generateNeighbors(Solution solution, int n);
+    Solution generateNeighbor(Solution solution);
 }

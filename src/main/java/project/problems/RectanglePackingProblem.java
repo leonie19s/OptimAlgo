@@ -10,12 +10,14 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
     private final List<PackingRectangle> packingRectangles;
     private final int boxSize;
     public List<Box> initialBoxes;
+    private int iterationTracker;
     // evtl placement strategy
 
     public RectanglePackingProblem(List<PackingRectangle> packingRectangles, int boxSize) {
 
         this.packingRectangles = packingRectangles;
         this.boxSize = boxSize;
+        this.iterationTracker = 0;
 
     }
 
@@ -53,9 +55,31 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
 
     @Override
     public double evaluate(PackingSolution solution) {
-        // TODO: add penalties, eg for nearly empty boxes or overlap
+        // TODO: add penalties, eg for nearly empty boxes
+        double boxWeight = 0.75;
+        Map<Box, Double> coverageMap = PackingSolution.computeCoverage(solution, true);
 
-        return solution.getNumberOfBoxes();
+        double totalScore = 0.0;
+
+        for (Double c : coverageMap.values()) {
+            double boxScore;
+
+            if (c >= 0.75) {
+                boxScore = 0.0;           // near full coverage → best
+            } else if (c <= 0.25) {
+                boxScore = 0.3;           // low coverage → a bit worse
+            } else {
+                boxScore = 1.0;           // medium coverage → worst
+            }
+
+            totalScore += boxScore;
+        }
+
+        // include number of boxes (fewer is better)
+        double boxEval = solution.getNumberOfBoxes() * boxWeight;
+
+        // total evaluation: smaller = better
+        return totalScore + boxEval;
     }
 
     @Override
@@ -70,7 +94,6 @@ public class RectanglePackingProblem implements OptimizationProblem<PackingSolut
             PackingRectangle r = entry.getKey();
             Placement p = entry.getValue();
             if (!p.isValid(r)) {
-                System.out.println("this happend");
                 return false;
             }
 

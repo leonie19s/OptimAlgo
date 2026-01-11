@@ -65,18 +65,15 @@ public class LocalSearch<T extends Solution<?>>
 
     @Override
     public T getCurrent(){
-
         return current;
     }
 
     @Override
     public T next() {
         List<T> neighbor = neighborhood.generateNeighbors(current,nNeigh);
-
         boolean wasBetter = false;
         T previous = current;
         T bestNeigh = current;
-
         for (T n : neighbor) {
             if (better(bestNeigh, n)) {
                 wasBetter = true;
@@ -95,6 +92,8 @@ public class LocalSearch<T extends Solution<?>>
                 finished = true;
             }
         }
+        assert problem.isFeasible(current);
+
         return current;
     }
 }

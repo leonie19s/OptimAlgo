@@ -53,12 +53,10 @@ public class GeometryBased implements Neighborhood<PackingSolution> {
                 return solution.createNeighborByRotate(rec);
 
             case CHANGE_BOX:
-                List<Integer> allBoxIDs = solution.getBoxIds();
-                Box srcBox = solution.getBoxOfRectangle(rec);
-                allBoxIDs.remove(srcBox.getID());
-                int targetIdx = random.nextInt(allBoxIDs.size());
-                return solution.createNeighborByBoxSwitch(rec, targetIdx, true, random);
 
+                PackingSolution n = solution.createNeighborByBoxSwitch(rec, true, random);
+                n.clearEmptyBoxes(n);
+                return n;
             default:
                 System.out.println("Unexpected GeometryMove: " + move);
                 return null;
