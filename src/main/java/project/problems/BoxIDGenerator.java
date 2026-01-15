@@ -16,7 +16,8 @@ public class BoxIDGenerator {
     }
 
     public BoxIDGenerator copy(){
-        return new BoxIDGenerator(lastIssuedID());
+
+        return new BoxIDGenerator(lastIssuedID()+1);
     }
 
 }

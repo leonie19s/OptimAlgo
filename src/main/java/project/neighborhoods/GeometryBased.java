@@ -5,26 +5,29 @@ import project.problems.PackingSolution;
 import project.problems.PackingRectangle;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 public class GeometryBased implements Neighborhood<PackingSolution> {
-
-    // design choices
-    int mindx = 1;
-    int maxdx = 4;
-    int mindy = 1;
-    int maxdy = 4;
     private final Random random = new Random();
 
-
-    // here we create moves (move, rotation)
-    // they are assessed and accepted/rejected by the algorithm (greedy, localsearch)
     @Override
     public List<PackingSolution> generateNeighbors(PackingSolution solution, int n) {
+        int origBoxes = solution.getNumberOfBoxes();
         List<PackingSolution> neighbors = new ArrayList<>();
+
         for (int i = 0; i <n; i++){
-            neighbors.add(generateNeighbor(solution));
+            PackingSolution newSol = generateNeighbor(solution);
+            if (newSol == null){
+                continue;
+            }
+            neighbors.add(newSol);
+            if (newSol.getNumberOfBoxes() < origBoxes){
+                Collections.reverse(neighbors);
+                return neighbors;
+            }
+
         }
         return neighbors;
 
@@ -33,35 +36,14 @@ public class GeometryBased implements Neighborhood<PackingSolution> {
     @Override
     public PackingSolution generateNeighbor(PackingSolution solution) {
         PackingRectangle randRec = solution.getRandomRectangle(random);
-        GeometryMove move =
-                GeometryMove.values()[random.nextInt(GeometryMove.values().length)];
-
-        return applyMove(move, solution, randRec,random );
+        return solution.createNeighborByBoxSwitch(randRec, random.nextBoolean(), random);
 
     }
 
-    public PackingSolution applyMove(GeometryMove move, PackingSolution solution, PackingRectangle rec, Random random){
+    @Override
+    public boolean allowsOverlap() {
+        return false;
+    }
 
-        switch (move)
-        {
-            case TRANSLATE:
-                int dx = random.nextInt(maxdx-mindx +1) + mindx;
-                int dy = random.nextInt(maxdy-mindy+1) + mindy;
-                return solution.createNeighborByMove(rec,dx,dy);
-
-            case ROTATE:
-                return solution.createNeighborByRotate(rec);
-
-            case CHANGE_BOX:
-
-                PackingSolution n = solution.createNeighborByBoxSwitch(rec, true, random);
-                n.clearEmptyBoxes(n);
-                return n;
-            default:
-                System.out.println("Unexpected GeometryMove: " + move);
-                return null;
-
-
-    }}
 
 }

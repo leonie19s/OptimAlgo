@@ -22,6 +22,8 @@ public class PackingSolution implements Solution<PackingRectangle> {
 
 
 
+    private List<PackingRectangle> allRectangles;
+    private double totalOverlap = 0;
 
     public PackingSolution(int boxSize ){
         this.boxSize = boxSize;
@@ -29,8 +31,15 @@ public class PackingSolution implements Solution<PackingRectangle> {
         this.placements = new HashMap<>();
         this.IDgenerator = new BoxIDGenerator(0); // start at 0
         this.lastRec = null;
-    }
+        this.allRectangles = new ArrayList<>();
 
+    }
+    public void setAllRectangles(List<PackingRectangle> recs){
+        this.allRectangles = recs;
+    }
+    public List<PackingRectangle> getAllRectangles(){
+        return this.allRectangles;
+    }
     public int getBoxSize(){
         return this.boxSize;
     }
@@ -38,8 +47,6 @@ public class PackingSolution implements Solution<PackingRectangle> {
     public PackingSolution copy() {
 
         PackingSolution copy = new PackingSolution(this.boxSize);
-
-        // 1️⃣ Copy boxes
         Map<Integer, Box> boxMap = new HashMap<>();
         for (Box b : this.boxes) {
             Box bCopy = b.copy();
@@ -47,14 +54,17 @@ public class PackingSolution implements Solution<PackingRectangle> {
             copy.addBox(bCopy);
         }
 
-        // 2️⃣ Copy rectangles + placements
+        if (!this.allRectangles.isEmpty()){
+            copy.allRectangles = new ArrayList<>(this.allRectangles);
+        }
+
+        //
         Map<PackingRectangle, Placement> newPlacements = new HashMap<>();
 
         for (Map.Entry<PackingRectangle, Placement> e : this.placements.entrySet()) {
 
             PackingRectangle oldRec = e.getKey();
             Placement oldPl = e.getValue();
-
 
             Box boxCopy = boxMap.get(oldPl.getBox().getID());
 
@@ -76,9 +86,9 @@ public class PackingSolution implements Solution<PackingRectangle> {
         return copy;
     }
     public BoxIDGenerator getGen(){return this.IDgenerator;}
+
     @Override
     public void applyChange(PackingRectangle elem) {
-
         placeFirstPlacementInPlace(elem);
         this.lastRec = elem;
     }
@@ -86,6 +96,7 @@ public class PackingSolution implements Solution<PackingRectangle> {
     public PackingRectangle getLastRec(){
         return this.lastRec;
     }
+
     public void setLastRec(PackingRectangle rec){
         this.lastRec = rec;
     }
@@ -96,24 +107,51 @@ public class PackingSolution implements Solution<PackingRectangle> {
         Placement bestPlace = findFirstPlacement(rec);
         this.placements.put(rec,bestPlace);
     }
-    public Placement findPlacementInBox(PackingRectangle rec, Box box)
+
+    public Placement findPlacmentInBoxOverlap( PackingRectangle rec,
+                                               Box box,
+                                               PackingSolution sol,
+                                               boolean rotate,
+                                               Random rng){
+
+        int boxSize = sol.boxSize;
+        int w = rotate ? rec.getHeight() : rec.getWidth();
+        int h = rotate ? rec.getWidth()  : rec.getHeight();
+        int maxX = boxSize - w;
+        int maxY = boxSize - h;
+        int x = rng.nextInt(maxX + 1);
+        int y = rng.nextInt(maxY + 1);
+
+        return new Placement(box, x, y, rotate);
+    }
+    public Placement findPlacementInBox(PackingRectangle rec, Box box, PackingSolution sol, boolean rotate)
     {
+        double area = PackingSolution.computeStatsPerBox(sol,false,box, true);
+        double freeArea = box.getL()* box.getL() -area;
+        if (freeArea < rec.getWidth()*rec.getHeight()){
+            return null;
+        }
         int boxID = box.getID();
-        try
-        {
-            List<PackingRectangle> recsOfBox = getRectangleByBoxID(boxID);
+
+            List<PackingRectangle> recsOfBox = sol.getRectangleByBoxID(boxID);
             // unrotated
-            for (int x = 0; x<= boxSize-rec.getWidth(); x++)
+            for (int x = 0; x<= sol.boxSize-rec.getWidth(); x++)
             {
-                for (int y = 0; y<= boxSize- rec.getHeight(); y++)
+                for (int y = 0; y<= sol.boxSize- rec.getHeight(); y++)
                 {
-                    Placement placementCandidate1 = new Placement(box, x,y,false);
+                    int tempy = y;
+                    int tempx = x;
+                    if (rotate){
+                        tempy = x;
+                        tempx = y;
+                    }
+                    Placement placementCandidate1 = new Placement(box, tempx,tempy,rotate);
                     // Placement placementCandidate2 = new Placement(box, x,y,true);
                     boolean conflict1 = false;
                     //boolean conflict2 = false;
                     for (PackingRectangle recInBox : recsOfBox)
                     {
-                        Placement activePlacement = placements.get(recInBox);
+                        Placement activePlacement = sol.placements.get(recInBox);
                         if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate1))
                         {
                             conflict1 = true;
@@ -128,101 +166,36 @@ public class PackingSolution implements Solution<PackingRectangle> {
                 }
             }
 
-            // rotated
-            for (int x = 0; x<= boxSize-rec.getHeight(); x++)
-            {
-                for (int y = 0; y<= boxSize- rec.getWidth(); y++)
-                {
-                    Placement placementCandidate2 = new Placement(box, x,y,true);
-                    boolean conflict = false;
-
-                    for (PackingRectangle recInBox : recsOfBox)
-                    {
-                        Placement activePlacement = placements.get(recInBox);
-                        if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate2))
-                        {
-                            conflict = true;
-                        }
-                    }
-                    if (!conflict)
-                    {
-                        // placement is possible
-                        return placementCandidate2;
-                    }
-                }
-    }} catch (Exception e)
-        {
-            throw new RuntimeException(e);
-        }
         return null;
     }
-    public Placement findFirstPlacement(PackingRectangle rec){
+
+    public Placement findFirstPlacement(PackingRectangle rec)
+    {
+        Placement candidate;
         for (Box box : this.boxes)
         {
-            // for each box, get rectangles and placements
-            int boxID = box.getID();
-            try {
-                List<PackingRectangle> recsOfBox = getRectangleByBoxID(boxID);
-                // unrotated
-                for (int x = 0; x<= boxSize-rec.getWidth(); x++)
-                {
-                    for (int y = 0; y<= boxSize- rec.getHeight(); y++)
-                    {
-                        Placement placementCandidate1 = new Placement(box, x,y,false);
-                       // Placement placementCandidate2 = new Placement(box, x,y,true);
-                        boolean conflict1 = false;
-                        //boolean conflict2 = false;
-                        for (PackingRectangle recInBox : recsOfBox)
-                        {
-                            Placement activePlacement = placements.get(recInBox);
-                            if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate1))
-                            {
-                                conflict1 = true;
-                            }
-                        }
-                        if (!conflict1)
-                        {
-                                // placement is possible
-                            return placementCandidate1;
-
-                        }
-                    }
-                }
-
-                // rotated
-                for (int x = 0; x<= boxSize-rec.getHeight(); x++)
-                {
-                    for (int y = 0; y<= boxSize- rec.getWidth(); y++)
-                    {
-                        Placement placementCandidate2 = new Placement(box, x,y,true);
-                        boolean conflict = false;
-
-                        for (PackingRectangle recInBox : recsOfBox)
-                        {
-                            Placement activePlacement = placements.get(recInBox);
-                            if (rectangleOverlap(recInBox, rec, activePlacement, placementCandidate2))
-                            {
-                                conflict = true;
-                            }
-                        }
-                        if (!conflict)
-                        {
-                            // placement is possible
-                            return placementCandidate2;
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
+            candidate = findPlacementInBox(rec, box, this, false);
+            if (candidate != null)
             {
-                throw new RuntimeException(e);
+
+                return candidate;
+            } else
+            {
+                candidate = findPlacementInBox(rec, box, this, true);
+                if (candidate != null)
+                {
+
+                    return candidate;
+                }
             }
         }
-        // went through all boxes, didnt find a valid placement
-        // create new box, place at (0,)
+        // didnt find a box at all
         Box newBox = createNewBox();
-        return new Placement(newBox,0,0,false);
-    }
+
+        return new Placement(newBox, 0, 0, false);
+
+        }
+
     public Placement getPlacement(PackingRectangle rect) {
         return placements.get(rect);
     }
@@ -247,6 +220,7 @@ public class PackingSolution implements Solution<PackingRectangle> {
 
     public Box createNewBox()
     {
+
         Box box = new Box(boxSize, this.IDgenerator.nextID());
         boxes.add(box);
         return box;
@@ -302,6 +276,7 @@ public class PackingSolution implements Solution<PackingRectangle> {
             }
         }
         System.out.println("There is no Box with this Box ID.");
+        assert 1==2;
         System.out.println(boxID);
         return null;
     }
@@ -309,26 +284,7 @@ public class PackingSolution implements Solution<PackingRectangle> {
 
     // --- Rectangle and Solution related methods ----
 
-    /*
-    First time placement of the rectangles!
-     */
-    public PackingSolution placeRectangleInCopy(PackingRectangle rec, int boxID, int x, int y, boolean rotated){
-        PackingSolution copy = this.copy();
-        Box newBox = new Box(boxSize, boxID);
-        if (!copy.boxExists(boxID)){
-            copy.addBox(newBox);
-        }
-        Placement placement = new Placement(
-                newBox,
-                x,
-                y,
-                rotated
-        );
-        copy.placements.put(rec, placement);
 
-        return copy;
-
-    }
     public boolean areRectanglesInSolution(Collection<PackingRectangle> packingRectangles){
         // List<Boxes>
         Set<Integer> boxIds = new HashSet<>();
@@ -353,116 +309,92 @@ public class PackingSolution implements Solution<PackingRectangle> {
     }
 
 
-    public PackingSolution createNeighborByMove(PackingRectangle rec, int dx, int dy){
-        // copy current solution
 
-        PackingSolution copy = this.copy();
-        copy.setLastRec(rec);
-        // get old placement of rec
-        Placement p = copy.getPlacement(rec);
 
-        // create new placement and place in copy
-        copy.placements.put(
-                rec,
-                new Placement(
-                        p.getBox(),
-                        p.x + dx,
-                        p.y +dy,
-                        p.rotated
-                )
-        );
-        return copy;
-    }
 
-    public PackingSolution createNeighborByRotate(PackingRectangle rec){
-        // copy current solution
-        PackingSolution copy = this.copy();
-        copy.setLastRec(rec);
-        // get old placement of rec
-        Placement p = copy.getPlacement(rec);
-        // create new placement and place in copy
-        copy.placements.put(
-                rec,
-                new Placement(
-                        p.getBox(),
-                        p.x ,
-                        p.y,
-                        !p.rotated
-                )
-        );
-        return copy;
-    }
-
-    public PackingSolution createNeighborByBoxSwitch(PackingRectangle rec,  boolean tryValid, Random random){
-        PackingSolution copy = this.copy();
-        copy.setLastRec(rec);
-        List<Box> boxes = copy.getBoxes();
+    public PackingSolution createNeighborByBoxSwitch(PackingRectangle rec,  boolean doFlip, Random random){
+        List<Box> boxes = this.getBoxes();
         int idx = random.nextInt(boxes.size());
 
         Box targetBox = boxes.get(idx);
+        if (this.getBoxOfRectangle(rec).getID() == targetBox.getID()){
+            return null;
+        }
+
         if(boxes.size()==2){
-            Box currentBox = copy.placements.get(rec).getBox();
+            Box currentBox = this.placements.get(rec).getBox();
             // pick the other box
             targetBox = (boxes.get(0).getID() == currentBox.getID()) ? boxes.get(1) : boxes.get(0);
         }
 
+        Placement placement = this.findPlacementInBox(rec, targetBox, this, doFlip);
 
-        if (tryValid) {
-            Placement placement = copy.findPlacementInBox(rec, targetBox);
-            if (placement != null) {
-                copy.placements.put(rec, placement);
-                return copy;
-            }
 
+        if (placement != null) {
+            PackingSolution copy = this.copy();
+            copy.setLastRec(rec);
+            targetBox = copy.boxes.get(idx);
+            placement.setBox(targetBox);
+            Box src = copy.getBoxOfRectangle(rec);
+            copy.placements.put(rec, placement);
+            //clearEmptyBoxes(copy);
+            clearSourceBox(copy,src);
+
+            return copy;
         }
 
-        Placement oldPlacement = copy.placements.get(rec);
-        boolean rotated = random.nextBoolean();
-        int width = oldPlacement.getWidth(rec);
-        int height = oldPlacement.getHeight(rec);
-        if(rotated){
-            int heightCopy = height;
-            height = width;
-            width=heightCopy;
-        }
-        int maxX = copy.boxSize - width;
-        int maxY = copy.boxSize - height;
-
-        int x = random.nextInt(maxX);
-        int y = random.nextInt(maxY);
-
-
-
-        Placement randomPlacement = new Placement(targetBox, x, y, rotated);
-        copy.placements.put(rec, randomPlacement);
-        return copy;
+        return null;
     }
-    public boolean clearEmptyBoxes(PackingSolution s){
-        List<Box> recList = s.boxes;
-        List<Box> boxesToRemove = new ArrayList<>();
-        for (Box box : recList){
-            boolean isActive=false;
-            for (Map.Entry<PackingRectangle, Placement> e : s.placements.entrySet())
-            {
+    public void clearSourceBox(PackingSolution s, Box source){
+        if (s.getRectangleByBoxID(source.getID()).isEmpty()){
+            s.removeBox(source);
+        }
+    }
+    public void clearEmptyBoxes(PackingSolution s){
 
-                PackingRectangle r = e.getKey();
-                Placement p = e.getValue();
-                if (p.getBox().getID() == box.getID())
-                {
-                    isActive=true;
-                    break;
-                }
+        List<Integer> boxIDsToRemove = new ArrayList<>(s.getBoxIds(s));
 
-            }
-            if (!isActive){
-                boxesToRemove.add(box);
-            }
+        for (Map.Entry<PackingRectangle, Placement> e : s.placements.entrySet())
+        {
+            boxIDsToRemove.remove((Integer)e.getValue().getBox().getID());
+        }
+        for (Integer i : boxIDsToRemove) {
+            s.removeBox(s.getBoxByBoxID(i));
         }
 
-        return recList.removeAll(boxesToRemove);
+    }
+
+    public static Map<Box, Integer> getNumberActiveRectangles(PackingSolution sol){
+        Map<Box,Integer> nRecsPerBox = new HashMap<>();
+        for (Box box : sol.boxes){
+            List<PackingRectangle> recs = sol.getRectangleByBoxID(box.getID());
+            nRecsPerBox.put(box,recs.size());
+        }
+        return  nRecsPerBox;
+    }
+
+    public double getMaxOverlapInBox(PackingSolution sol){
+        List<PackingRectangle> recsInBox = sol.getRectangleByBoxID(0);
+        double maxOverlap = 0.0;
+        int n = recsInBox.size();
+        for (int i = 0; i < n; i++) {
+            PackingRectangle r1 = recsInBox.get(i);
+            Placement p1 = sol.placements.get(r1);
+            for (int j = i + 1; j < n; j++) {
+                PackingRectangle r2 = recsInBox.get(j);
+                Placement p2 = sol.placements.get(r2);
+                double overlap = PackingSolution.rectangleOverlapRatio(r1,r2,p1,p2);
+                if (overlap == 1.0){
+                    return 1.0;
+                }
+                if (overlap > maxOverlap){
+                    maxOverlap = overlap;
+                }
+            }
+        }
+        return maxOverlap;
     }
     public PackingRectangle getRandomRectangle(Random random){
-
         List<PackingRectangle> packingRectangles = new ArrayList<PackingRectangle>(this.placements.keySet());
         int index = random.nextInt(packingRectangles.size());
         return packingRectangles.get(index);
@@ -471,6 +403,7 @@ public class PackingSolution implements Solution<PackingRectangle> {
     public List<PackingRectangle> getRectangleByBoxID(int boxID) {
         List<PackingRectangle> packingRectangles = new ArrayList<PackingRectangle>();
         Box thisBox = getBoxByBoxID(boxID);
+        if (thisBox==null)return null;
         for (Map.Entry<PackingRectangle, Placement> entry : this.getPlacements().entrySet())
         {
             PackingRectangle r = entry.getKey();
@@ -484,6 +417,9 @@ public class PackingSolution implements Solution<PackingRectangle> {
         }
         return packingRectangles;
     }
+
+
+
     public static boolean rectangleOverlap(PackingRectangle r1, PackingRectangle r2, Placement p1, Placement p2){
         int x1 = p1.x;
         int y1 = p1.y;
@@ -585,6 +521,7 @@ public class PackingSolution implements Solution<PackingRectangle> {
         return perm;
     }
 
+
     @Override
     public void applyPerm(List<PackingRectangle> perm) {
         for (PackingRectangle rec : perm){
@@ -662,6 +599,76 @@ public class PackingSolution implements Solution<PackingRectangle> {
         return coverageMap;
     }
 
+
+    public static double computeStatsPerBox(PackingSolution solution, boolean allowOverlap, Box targetBox, boolean area) {
+
+        int boxSize = solution.getBoxSize(); // assume square boxes
+
+            if (!allowOverlap)
+            {
+                // simple sum of rectangle areas (faster)
+                int totalArea = 0;
+                for (Map.Entry<PackingRectangle, Placement> entry : solution.getPlacements().entrySet()) {
+                    Placement p = entry.getValue();
+                    if (!p.getBox().equals(targetBox)) continue;
+
+                    int w = p.getWidth(entry.getKey());
+                    int h = p.getHeight(entry.getKey());
+                    totalArea += w * h;
+                }
+                if (area){
+                    return totalArea;
+                }
+                double fraction = Math.min(1.0, (double) totalArea / (boxSize * boxSize));
+                return fraction;
+            } else
+            {
+                // exact overlap-aware calculation using sweep-line
+                Map<Integer, List<int[]>> rowIntervals = new HashMap<>();
+
+                for (Map.Entry<PackingRectangle, Placement> entry : solution.getPlacements().entrySet()) {
+                    Placement p = entry.getValue();
+                    if (!p.getBox().equals(targetBox)) continue;
+
+                    int w = p.getWidth(entry.getKey());
+                    int h = p.getHeight(entry.getKey());
+                    int x0 = p.getX();
+                    int y0 = p.getY();
+
+                    for (int y = y0; y < y0 + h; y++) {
+                        rowIntervals.computeIfAbsent(y, k -> new ArrayList<>())
+                                .add(new int[]{x0, x0 + w});
+                    }
+                }
+
+                int coveredCells = 0;
+
+                for (int y : rowIntervals.keySet()) {
+                    List<int[]> intervals = rowIntervals.get(y);
+                    if (intervals.isEmpty()) continue;
+
+                    intervals.sort(Comparator.comparingInt(a -> a[0]));
+
+                    int currentStart = intervals.get(0)[0];
+                    int currentEnd = intervals.get(0)[1];
+
+                    for (int i = 1; i < intervals.size(); i++) {
+                        int[] interval = intervals.get(i);
+                        if (interval[0] <= currentEnd) {
+                            currentEnd = Math.max(currentEnd, interval[1]);
+                        } else {
+                            coveredCells += currentEnd - currentStart;
+                            currentStart = interval[0];
+                            currentEnd = interval[1];
+                        }
+                    }
+                    coveredCells += currentEnd - currentStart;
+                }
+
+                double fraction = (double) coveredCells / (boxSize * boxSize);
+                return fraction;
+            }
+    }
     /**
      * Total coverage across all boxes
      */
@@ -684,22 +691,139 @@ public class PackingSolution implements Solution<PackingRectangle> {
         return new PackingSolution(this.boxSize);
 
     }
-    public boolean isEmpty(){
-        return this.IDgenerator.lastIssuedID() == -1;
-    }
+
+
     public PackingSolution createNeighborFromPermutation(List<PackingRectangle> perm){
         PackingSolution neighbor = this.copyEmpty();
-
-        if (!neighbor.isEmpty()){
-            return null;
-        }
 
         for (PackingRectangle rec : perm){
             neighbor.placeFirstPlacementInPlace(rec);
         }
-
         return neighbor;
 
+    }
+    public PackingSolution createNeighborByNewBox(PackingRectangle rec,  boolean doFlip, Random random){
+        PackingSolution copy = this.copy();
+        copy.setLastRec(rec);
+        int maxX = doFlip ? copy.boxSize - rec.getHeight() : copy.boxSize - rec.getWidth();
+        int maxY  = doFlip ? copy.boxSize - rec.getWidth() : copy.boxSize - rec.getHeight();
+        Box box = copy.createNewBox();
+        Placement newPlacement = new Placement(box, random.nextInt(maxX),random.nextInt(maxY),doFlip );
+        copy.placements.put(rec, newPlacement);
+        return copy;
+    }
+    public PackingSolution createNeighborFromBoxSwitchOverlap(PackingRectangle rec,  boolean doFlip, Random random){
+        List<Box> boxes = this.getBoxes();
+        int idx = random.nextInt(boxes.size());
+
+        Box targetBox = boxes.get(idx);
+        if (this.getBoxOfRectangle(rec).getID() == targetBox.getID()){
+            return null;
+        }
+
+        if(boxes.size()==2){
+            Box currentBox = this.placements.get(rec).getBox();
+            // pick the other box
+            targetBox = (boxes.get(0).getID() == currentBox.getID()) ? boxes.get(1) : boxes.get(0);
+        }
+
+        Placement placement = this.findPlacmentInBoxOverlap(rec, targetBox, this, doFlip, random);
+        PackingSolution copy = this.copy();
+        copy.setLastRec(rec);
+        targetBox = copy.boxes.get(idx);
+        placement.setBox(targetBox);
+        Box src = copy.getBoxOfRectangle(rec);
+        copy.placements.put(rec, placement);
+        clearSourceBox(copy,src);
+
+        return copy;
+
+
+
+    }
+    public PackingSolution createNeighborByPlacement(PackingRectangle rec, PackingSolution sol){
+
+        PackingSolution copy = sol.copy();
+        assert (sol.getGen().lastIssuedID() == copy.getGen().lastIssuedID());
+
+        //copy.placements.remove(rec);
+        Placement placement = copy.findFirstPlacement(rec);
+
+
+        //copy.updateOverlap(copy,placement, oldPlacement,rec);
+        copy.placements.put(rec, placement);
+        copy.setLastRec(rec);
+        return copy;
+    }
+
+
+    public static double getOverlapPerSolution(PackingSolution sol) {
+        List<PackingRectangle> list = sol.allRectangles;
+        int n = sol.allRectangles.size();
+        double sum = 0;
+        int len = 0;
+        for (int i = 0; i < n; i++) {
+            PackingRectangle ri = list.get(i);
+            Placement pi = sol.placements.get(ri);
+            for (int j = i+1; j < n; j++) {
+                PackingRectangle rj = list.get(j);
+                Placement pj = sol.placements.get(rj);
+                double value = PackingSolution.rectangleOverlapRatio(ri,rj,pi,pj);
+                if ( value ==0)continue;
+                sum += value;
+                len++;
+            }
+        }
+        if(len ==0)return 0;
+        return sum/len;
+    }
+
+
+    public static double  rectangleOverlapRatio(PackingRectangle r1, PackingRectangle r2,
+                                       Placement p1, Placement p2) {
+        /*
+        die Überlappung zweier Rechtecke ist dabei die gemeinsame
+        Fläche geteilt durch das Maximum der beiden Rechteckflächen.
+         */
+        if (p1.getBox().getID() != p2.getBox().getID()) return 0;
+        double x1 = p1.getX();
+        double y1 = p1.getY();
+        double w1 = p1.getWidth(r1);
+        double h1 = p1.getHeight(r1);
+
+        double x2 = p2.getX();
+        double y2 = p2.getY();
+        double w2 = p2.getWidth(r2);
+        double h2 = p2.getHeight(r2);
+
+        double overlapWidth = Math.min(x1 + w1, x2 + w2) - Math.max(x1, x2);
+        double overlapHeight = Math.min(y1 + h1, y2 + h2) - Math.max(y1, y2);
+
+        if (overlapWidth <= 0 || overlapHeight <= 0) {
+            return 0.0; // no overlap
+        }
+
+        double overlap_area = overlapWidth * overlapHeight;
+        double max_area = Math.max((w1*h1),(w2*h2));
+        return overlap_area/max_area;
+    }
+    public static List<PackingRectangle> getOnlyUnfrozenRectangles(PackingSolution sol){
+        // get all rectangles
+        List<PackingRectangle> allRecs = new ArrayList<>();
+        List<Integer> frozenBoxIds = new ArrayList<>();
+        for (Map.Entry<PackingRectangle, Placement> entry : sol.getPlacements().entrySet()) {
+            PackingRectangle r = entry.getKey();
+            allRecs.add(r);
+        }
+        List<Box> allBoxes = sol.getBoxes();
+        for (Box box : allBoxes){
+            if(PackingSolution.computeStatsPerBox(sol, false,box, false) > 0.95){
+                frozenBoxIds.add(box.getID());
+            }
+        }
+
+        allRecs.removeIf(rec -> frozenBoxIds.contains(sol.getPlacement(rec).getBox().getID()));
+        return allRecs;
     }
 
 }

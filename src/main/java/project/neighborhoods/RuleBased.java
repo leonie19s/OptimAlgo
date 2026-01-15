@@ -6,17 +6,25 @@ import project.problems.PackingSolution;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 public class RuleBased  implements Neighborhood<PackingSolution>  {
     private final Random random = new Random();
+    private int currentIteration;
+
 
     @Override
     public List<PackingSolution> generateNeighbors(PackingSolution solution, int n) {
         List<PackingSolution> neighbors = new ArrayList<>();
+        int origBoxes = solution.getNumberOfBoxes();
         for (int i = 0; i <n; i++){
-            neighbors.add(generateNeighbor(solution));
+            PackingSolution newSol = generateNeighbor(solution);
+
+            neighbors.add(newSol);
+            // a preferable neighbor, reverse so that its evaluated first!
+
         }
         return neighbors;
 
@@ -25,12 +33,16 @@ public class RuleBased  implements Neighborhood<PackingSolution>  {
     @Override
     public PackingSolution generateNeighbor(PackingSolution solution) {
         List<PackingRectangle> currentPerm = solution.getPerm();
-
         RuleBasedMove move =
                 RuleBasedMove.values()[random.nextInt(RuleBasedMove.values().length)];
         List<PackingRectangle> newPerm = getPerm(move,currentPerm);
         // pick random move and indices
         return solution.createNeighborFromPermutation(newPerm);
+    }
+
+    @Override
+    public boolean allowsOverlap() {
+        return false;
     }
 
     public List<PackingRectangle> getPerm(RuleBasedMove move, List<PackingRectangle>oldPerm) {
@@ -46,8 +58,8 @@ public class RuleBased  implements Neighborhood<PackingSolution>  {
                 return newPerm;
 
             case REVERSE:
-                if (i >= j) return oldPerm;
-                while (i < j) {
+               if (i >= j) return oldPerm;
+               while (i < j) {
                     temp = oldPerm.get(i);
                     newPerm.set(i, oldPerm.get(j));
                     newPerm.set(j, temp);

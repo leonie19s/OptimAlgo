@@ -14,16 +14,20 @@ public class LocalSearch<T extends Solution<?>>
 
     // has neighborhood as private attribute
     private final Neighborhood<T> neighborhood;
-    private final int nNeigh;
+    private int nNeigh;
     private final List<StoppingCriterion<T>> criteria;
     private T current;
     private boolean finished = false;
+    private int iteration;
+
 
     public LocalSearch(OptimizationProblem<T> problem, Neighborhood<T> neighborhood, int nNeigh, List<StoppingCriterion<T>> criteria){
         this.problem = problem;
         this.neighborhood = neighborhood;
         this.nNeigh = nNeigh;
         this.criteria = criteria;
+        this.iteration = 0;
+
     }
 
 
@@ -44,17 +48,18 @@ public class LocalSearch<T extends Solution<?>>
     @Override
     public void initialize(Void input, T solutionState) {
         this.current = solutionState;
-        assert this.problem.isFeasible(solutionState);
+        //assert this.problem.isFeasible(solutionState);
 
     }
 
+    public boolean neighborBetter(double currentScore, T neighbor){
+        double neighScore = problem.evaluate(neighbor, neighborhood.allowsOverlap(), this.iteration);
+        return neighScore <= currentScore;
+    }
     public boolean better(T currentSolution, T neighbor){
-        assert this.problem.isFeasible(currentSolution);
-        if (!problem.isFeasible(neighbor)){
-            return false;
-        }
-        double currScore = problem.evaluate(currentSolution);
-        double neighScore = problem.evaluate(neighbor);
+
+        double currScore = problem.evaluate(currentSolution, neighborhood.allowsOverlap(), this.iteration);
+        double neighScore = problem.evaluate(neighbor, neighborhood.allowsOverlap(), this.iteration);
         return neighScore <= currScore;
 
     }
@@ -71,11 +76,21 @@ public class LocalSearch<T extends Solution<?>>
     @Override
     public T next() {
         List<T> neighbor = neighborhood.generateNeighbors(current,nNeigh);
+        this.iteration++;
+        // there are no more valid neighbors
+        if (neighbor.isEmpty()){
+            finished = true;
+            return current;
+        }
         boolean wasBetter = false;
         T previous = current;
         T bestNeigh = current;
+        double bestScore = problem.evaluate(current, neighborhood.allowsOverlap(), this.iteration);
+
+
         for (T n : neighbor) {
-            if (better(bestNeigh, n)) {
+
+            if (neighborBetter(bestScore, n)) {
                 wasBetter = true;
                 bestNeigh = n;
                 break;
@@ -84,15 +99,19 @@ public class LocalSearch<T extends Solution<?>>
         if(wasBetter)
         {
             current= bestNeigh;
+
         }
+
         for (StoppingCriterion<T> c : criteria)
         {
             c.update(previous, current, wasBetter);
             if (c.shouldStop()) {
-                finished = true;
+                if(!neighborhood.allowsOverlap() || problem.isFeasible(current)) {
+                    finished = true;
+                }
             }
         }
-        assert problem.isFeasible(current);
+        //assert problem.isFeasible(current);
 
         return current;
     }

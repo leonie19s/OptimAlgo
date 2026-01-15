@@ -19,6 +19,9 @@ public class Placement {
     public int getX(){
         return x;
     }
+    public void setBox(Box box){
+        this.box = box;
+    }
     public int getY(){
         return y;
     }
